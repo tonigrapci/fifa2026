@@ -32,6 +32,7 @@
     .stat .lab { font-size:12px; color:var(--slate-300); }
     .toolbar { background:white; border:1px solid var(--slate-200); border-radius:28px; padding:16px; box-shadow:0 1px 6px rgba(15,23,42,.05); }
     .toolbar.sticky { position:sticky; top:12px; z-index:30; }
+    .toolbar-summary { display:none; }
     .toolbar-row { display:flex; flex-direction:column; gap:12px; }
     .searchbox { position:relative; width:100%; }
     .searchbox span { position:absolute; left:12px; top:9px; color:var(--slate-400); }
@@ -129,6 +130,21 @@
     }
     @media (min-width: 1100px) { .day-grid { grid-template-columns:repeat(3,1fr); } }
     @media (max-width: 700px) {
+      .page { padding:12px; }
+      .wrap { gap:14px; }
+      .hero { border-radius:22px; padding:18px; }
+      .toolbar.sticky { top:8px; border-radius:20px; padding:10px; }
+      .toolbar-summary { align-items:center; justify-content:space-between; gap:10px; width:100%; }
+      .toolbar-summary-text { min-width:0; color:var(--slate-600); font-size:13px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .toolbar-summary .btn { flex:0 0 auto; padding:8px 10px; border-radius:14px; }
+      .controls { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:stretch; }
+      .controls .btn, .controls .file-label, .controls select { width:100%; min-width:0; justify-content:center; }
+      .legend { font-size:12px; gap:8px; }
+      body.filters-collapsed:not(.filters-expanded) .toolbar.sticky { padding:8px 10px; border-radius:18px; }
+      body.filters-collapsed:not(.filters-expanded) .toolbar.sticky .toolbar-summary { display:flex; }
+      body.filters-collapsed:not(.filters-expanded) .toolbar.sticky .toolbar-row,
+      body.filters-collapsed:not(.filters-expanded) .toolbar.sticky .legend,
+      body.filters-collapsed:not(.filters-expanded) .toolbar.sticky .backup { display:none; }
       .month { overflow-x:auto; }
       .month-head, .month-grid { min-width:900px; }
       .week { overflow-x:auto; }
@@ -358,6 +374,10 @@
           </div>
         </header>
         <section class="toolbar ${state.view === "agenda" ? "sticky" : ""}">
+          <div class="toolbar-summary">
+            <button class="btn active" onclick="toggleFiltersExpanded()">☰ Filters</button>
+            <div class="toolbar-summary-text">${list.length} shown · ${state.view[0].toUpperCase()+state.view.slice(1)} · ${state.colourFilter === "all" ? "All colours" : state.colourFilter}</div>
+          </div>
           <div class="toolbar-row">
             <label class="searchbox"><span>⌕</span><input type="search" id="search" placeholder="Search team, venue, stage, notes..." value="${escapeHtml(state.query)}"></label>
             <div class="controls">
@@ -499,6 +519,19 @@
       const selected = state.selectedId ? events().find(e => e.id === state.selectedId) : null;
       document.getElementById("app").innerHTML = `<div class="page"><div class="wrap">${renderToolbar(list)}${main}</div>${renderEditor(selected)}</div>`;
       bindInputs();
+      updateMobileToolbar();
+    }
+
+    let mobileToolbarBound = false;
+    function updateMobileToolbar() {
+      const shouldCollapse = state.view === "agenda" && window.matchMedia("(max-width: 700px)").matches && window.scrollY > 220;
+      document.body.classList.toggle("filters-collapsed", shouldCollapse);
+      if (!shouldCollapse) document.body.classList.remove("filters-expanded");
+      if (!mobileToolbarBound) {
+        mobileToolbarBound = true;
+        window.addEventListener("scroll", updateMobileToolbar, { passive:true });
+        window.addEventListener("resize", updateMobileToolbar);
+      }
     }
 
     function bindInputs() {
@@ -511,6 +544,9 @@
     }
 
     function setView(v) { state.view = v; render(); }
+    function toggleFiltersExpanded() {
+      document.body.classList.toggle("filters-expanded");
+    }
     function toggleTests() { state.showTests = !state.showTests; render(); }
     function openEditor(id) { state.selectedId = id; render(); }
     function closeEditor() { state.selectedId = null; render(); }
