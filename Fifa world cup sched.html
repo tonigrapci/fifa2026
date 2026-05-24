@@ -3,6 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#059669" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="World Cup" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/svg+xml" href="assets/soccer-ball-icon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png" />
   <title>World Cup Sydney Calendar</title>
   <style>
     :root {
@@ -577,7 +586,7 @@
     }
     async function shareInvite() {
       const shareUrl = "https://tonigrapci.github.io/fifa2026/";
-      const title = "FIFA 2026 Schedule App";
+      const title = "World Cup Calendar";
       const text = "Scan this QR code or open the World Cup schedule app.";
       const imagePath = "assets/fifa2026-invite.png";
       try {
