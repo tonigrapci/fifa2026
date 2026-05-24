@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>World Cup Sydney Calendar</title>
+  <style>
+    :root {
+      --slate-950:#020617; --slate-900:#0f172a; --slate-700:#334155; --slate-600:#475569;
+      --slate-500:#64748b; --slate-400:#94a3b8; --slate-300:#cbd5e1; --slate-200:#e2e8f0;
+      --slate-100:#f1f5f9; --slate-50:#f8fafc; --white:#fff;
+      --blue-50:#eff6ff; --blue-300:#93c5fd; --blue-600:#2563eb;
+      --yellow-50:#fefce8; --yellow-300:#fde047;
+      --green-50:#f0fdf4; --green-300:#86efac; --emerald-300:#6ee7b7; --emerald-600:#059669;
+      --red-50:#fef2f2; --red-100:#fee2e2; --red-200:#fecaca; --red-400:#f87171; --red-600:#dc2626; --red-700:#b91c1c;
+      --purple-100:#f3e8ff; --purple-700:#7e22ce;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:var(--slate-100); color:var(--slate-900); }
+    button, input, textarea, select { font: inherit; }
+    button { cursor:pointer; }
+    .page { min-height:100vh; padding:16px; }
+    .wrap { max-width:1280px; margin:0 auto; display:flex; flex-direction:column; gap:20px; }
+    .hero { background:var(--slate-950); color:white; border-radius:28px; padding:24px; box-shadow:0 18px 40px rgba(2,6,23,.18); }
+    .hero-inner { display:flex; flex-direction:column; gap:16px; }
+    .eyebrow { color:var(--emerald-300); font-size:14px; font-weight:700; letter-spacing:.25em; text-transform:uppercase; }
+    h1 { margin:.25rem 0; font-size: clamp(2rem, 5vw, 3.5rem); line-height:1; }
+    .hero p { color:var(--slate-300); max-width:760px; margin:.5rem 0 0; }
+    .stats { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; text-align:center; }
+    .stat { background:rgba(255,255,255,.1); border-radius:18px; padding:12px; }
+    .stat .num { font-size:28px; font-weight:900; }
+    .stat .lab { font-size:12px; color:var(--slate-300); }
+    .toolbar { background:white; border:1px solid var(--slate-200); border-radius:28px; padding:16px; box-shadow:0 1px 6px rgba(15,23,42,.05); }
+    .toolbar.sticky { position:sticky; top:12px; z-index:30; }
+    .toolbar-row { display:flex; flex-direction:column; gap:12px; }
+    .searchbox { position:relative; width:100%; }
+    .searchbox span { position:absolute; left:12px; top:9px; color:var(--slate-400); }
+    input[type="search"], input[type="text"], input[type="date"], input[type="time"], textarea, select {
+      width:100%; border:1px solid var(--slate-200); border-radius:14px; padding:10px 12px; outline:none; background:white;
+    }
+    input[type="search"] { padding-left:40px; }
+    .controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    .btn, .file-label { border:1px solid var(--slate-200); background:white; color:var(--slate-900); border-radius:16px; padding:9px 14px; font-weight:700; display:inline-flex; align-items:center; gap:8px; text-decoration:none; }
+    .btn.active { background:var(--slate-950); color:white; }
+    .btn.primary { background:var(--slate-950); color:white; border-color:var(--slate-950); }
+    .btn.green { background:var(--emerald-600); color:white; border-color:var(--emerald-600); }
+    .legend { margin-top:14px; display:flex; flex-wrap:wrap; gap:12px; color:var(--slate-600); font-size:14px; }
+    .swatch { display:inline-block; width:16px; height:16px; border-radius:4px; vertical-align:middle; margin-right:4px; border:1px solid var(--slate-200); }
+    .backup { margin-top:14px; background:var(--slate-50); border:1px solid var(--slate-200); border-radius:18px; padding:14px; font-size:14px; }
+    .backup textarea { width:100%; min-height:140px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; }
+    .grid2 { display:grid; grid-template-columns:1fr; gap:12px; }
+    .hidden { display:none !important; }
+    .event-row, .event-card, .mini { width:100%; text-align:left; border:1px solid var(--slate-200); border-radius:24px; padding:16px; box-shadow:0 1px 5px rgba(15,23,42,.05); transition:.15s ease; }
+    .event-row:hover, .event-card:hover, .mini:hover { transform:translateY(-1px); box-shadow:0 8px 18px rgba(15,23,42,.08); }
+    .event-row-inner { display:flex; flex-direction:column; gap:12px; justify-content:space-between; }
+    .badges { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+    .badge { display:inline-flex; align-items:center; gap:4px; border-radius:999px; padding:4px 8px; font-size:12px; font-weight:800; }
+    .badge.dark { background:var(--slate-950); color:white; }
+    .badge.light { background:var(--slate-100); color:var(--slate-700); }
+    .badge.must { background:var(--red-100); color:var(--red-700); border:1px solid var(--red-200); }
+    .badge.watched { background:var(--purple-100); color:var(--purple-700); }
+    .badge.live { background:var(--red-100); color:var(--red-700); border:1px solid var(--red-200); }
+    .badge.replay { background:var(--blue-50); color:var(--blue-600); border:1px solid var(--blue-300); }
+    .badge.skip { background:var(--slate-200); color:var(--slate-700); border:1px solid var(--slate-300); }
+    .event-title { margin:8px 0 4px; font-size:20px; font-weight:900; }
+    .meta { color:var(--slate-600); font-size:14px; }
+    .notes { margin-top:10px; background:rgba(255,255,255,.7); border-radius:16px; padding:10px; color:var(--slate-700); }
+    .big-time { font-size:28px; font-weight:900; text-align:right; }
+    .bg-mustWatch { background:var(--red-50); border-color:var(--red-400); box-shadow:0 0 0 2px var(--red-200), 0 1px 5px rgba(15,23,42,.05); }
+    .bg-weekend { background:var(--green-50); border-color:var(--green-300); }
+    .bg-early { background:var(--blue-50); border-color:var(--blue-300); }
+    .bg-morning { background:var(--yellow-50); border-color:var(--yellow-300); }
+    .bg-other { background:white; border-color:var(--slate-200); }
+    .day-block { background:white; border:1px solid var(--slate-200); border-radius:28px; overflow:hidden; box-shadow:0 1px 5px rgba(15,23,42,.05); }
+    .day-head { background:var(--slate-950); color:white; padding:12px 20px; font-weight:900; }
+    .day-grid { display:grid; grid-template-columns:1fr; gap:12px; padding:16px; }
+    .cal-nav { display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:space-between; background:white; border:1px solid var(--slate-200); border-radius:28px; padding:16px; box-shadow:0 1px 5px rgba(15,23,42,.05); }
+    .cal-title { font-size:20px; font-weight:900; text-align:center; }
+    .week { background:white; border:1px solid var(--slate-200); border-radius:28px; overflow:hidden; box-shadow:0 1px 5px rgba(15,23,42,.05); }
+    .week-head, .month-head { display:grid; grid-template-columns:repeat(7,1fr); background:var(--slate-950); color:white; }
+    .week-head > div, .month-head > div { padding:10px; text-align:center; font-weight:900; border-right:1px solid rgba(255,255,255,.1); }
+    .week-grid { display:grid; grid-template-columns:1fr; }
+    .week-day { min-height:180px; border-top:1px solid var(--slate-200); padding:8px; }
+    .month { background:white; border:1px solid var(--slate-200); border-radius:28px; overflow:hidden; box-shadow:0 1px 5px rgba(15,23,42,.05); }
+    .month-grid { display:grid; grid-template-columns:repeat(7,1fr); }
+    .month-day { min-height:190px; border-top:1px solid var(--slate-200); border-right:1px solid var(--slate-200); padding:8px; overflow:hidden; }
+    .month-day.muted { background:var(--slate-50); color:var(--slate-400); }
+    .day-num { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .count-pill { background:var(--slate-100); color:var(--slate-600); border-radius:999px; padding:2px 8px; font-size:10px; font-weight:900; }
+    .mini { border-radius:12px; padding:5px 7px; margin-bottom:4px; font-size:12px; box-shadow:none; }
+    .mini-top { display:flex; align-items:center; justify-content:space-between; gap:4px; }
+    .mini-time { font-size:11px; font-weight:900; white-space:nowrap; }
+    .mini-title { font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .status-dot { display:inline-block; width:8px; height:8px; border-radius:999px; }
+    .status-live { background:var(--red-600); }
+    .status-replay { background:var(--blue-600); }
+    .status-skip { background:var(--slate-500); }
+    .star { color:var(--red-700); font-size:13px; }
+    .modal { position:fixed; inset:0; z-index:80; background:rgba(2,6,23,.65); display:flex; align-items:center; justify-content:center; padding:16px; }
+    .modal-card { width:100%; max-width:720px; background:white; border-radius:28px; overflow:hidden; box-shadow:0 30px 80px rgba(2,6,23,.35); }
+    .modal-head { background:var(--slate-950); color:white; padding:20px; }
+    .modal-head .small { color:var(--emerald-300); letter-spacing:.2em; text-transform:uppercase; font-size:12px; font-weight:800; }
+    .modal-head h2 { margin:4px 0 0; }
+    .form { display:grid; grid-template-columns:1fr; gap:14px; padding:20px; }
+    label { font-size:14px; font-weight:800; }
+    label > input, label > textarea, label > select { margin-top:6px; font-weight:400; }
+    .checkrow { display:flex; align-items:center; gap:8px; }
+    .modal-actions { background:var(--slate-50); padding:18px; display:flex; flex-direction:column-reverse; gap:8px; justify-content:space-between; }
+    .right-actions { display:flex; gap:8px; justify-content:flex-end; }
+    .empty { border:1px dashed var(--slate-300); border-radius:12px; color:var(--slate-400); padding:12px; font-size:12px; }
+    .test-grid { display:grid; grid-template-columns:1fr; gap:8px; }
+    .test-pass { background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; border-radius:12px; padding:8px; }
+    .test-fail { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; border-radius:12px; padding:8px; }
+    @media (min-width: 768px) {
+      .page { padding:32px; }
+      .hero-inner { flex-direction:row; align-items:flex-end; justify-content:space-between; }
+      .stats { grid-template-columns:repeat(4,1fr); min-width:420px; }
+      .toolbar-row { flex-direction:row; align-items:center; justify-content:space-between; }
+      .searchbox { max-width:420px; }
+      .grid2 { grid-template-columns:repeat(2,1fr); }
+      .day-grid { grid-template-columns:repeat(2,1fr); }
+      .event-row-inner { flex-direction:row; align-items:center; }
+      .week-grid { grid-template-columns:repeat(7,1fr); }
+      .week-day { border-right:1px solid var(--slate-200); }
+      .cal-nav { flex-direction:row; }
+      .form { grid-template-columns:1fr 1fr; }
+      .span2 { grid-column: span 2; }
+      .modal-actions { flex-direction:row; align-items:center; }
+    }
+    @media (min-width: 1100px) { .day-grid { grid-template-columns:repeat(3,1fr); } }
+    @media (max-width: 700px) {
+      .month { overflow-x:auto; }
+      .month-head, .month-grid { min-width:900px; }
+      .week { overflow-x:auto; }
+      .week-head, .week-grid { min-width:900px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    const BASE_MATCHES = [{"id": 1, "stage": "Group A", "home": "Mexico", "away": "South Africa", "venue": "Mexico City, Mexico", "hostTimeZone": "America/Mexico_City", "date": "2026-06-12", "time": "05:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 2, "stage": "Group A", "home": "South Korea", "away": "Czech Republic", "venue": "Zapopan, Mexico", "hostTimeZone": "America/Mexico_City", "date": "2026-06-12", "time": "12:00", "watchWindow": "Afternoon", "australia": false}, {"id": 3, "stage": "Group B", "home": "Canada", "away": "Bosnia & Herzegovina", "venue": "Toronto, Canada", "hostTimeZone": "America/Toronto", "date": "2026-06-13", "time": "05:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 4, "stage": "Group D", "home": "USA", "away": "Paraguay", "venue": "Los Angeles, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-06-13", "time": "11:00", "watchWindow": "Morning", "australia": false}, {"id": 5, "stage": "Group C", "home": "Haiti", "away": "Scotland", "venue": "Foxborough, USA", "hostTimeZone": "America/New_York", "date": "2026-06-14", "time": "11:00", "watchWindow": "Morning", "australia": false}, {"id": 6, "stage": "Group D", "home": "Australia", "away": "Turkey", "venue": "Vancouver, Canada", "hostTimeZone": "America/Vancouver", "date": "2026-06-14", "time": "14:00", "watchWindow": "Afternoon", "australia": true}, {"id": 7, "stage": "Group C", "home": "Brazil", "away": "Morocco", "venue": "New Jersey, USA", "hostTimeZone": "America/New_York", "date": "2026-06-14", "time": "08:00", "watchWindow": "Morning", "australia": false}, {"id": 8, "stage": "Group B", "home": "Qatar", "away": "Switzerland", "venue": "Santa Clara, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-06-14", "time": "05:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 9, "stage": "Group E", "home": "Ivory Coast", "away": "Ecuador", "venue": "Philadelphia, USA", "hostTimeZone": "America/New_York", "date": "2026-06-15", "time": "09:00", "watchWindow": "Morning", "australia": false}, {"id": 10, "stage": "Group E", "home": "Germany", "away": "Curacao", "venue": "Houston, USA", "hostTimeZone": "America/Chicago", "date": "2026-06-15", "time": "03:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 11, "stage": "Group F", "home": "Netherlands", "away": "Japan", "venue": "Arlington, USA", "hostTimeZone": "America/Chicago", "date": "2026-06-15", "time": "06:00", "watchWindow": "Morning", "australia": false}, {"id": 12, "stage": "Group F", "home": "Sweden", "away": "Tunisia", "venue": "Guadalupe, Mexico", "hostTimeZone": "America/Monterrey", "date": "2026-06-15", "time": "12:00", "watchWindow": "Afternoon", "australia": false}, {"id": 13, "stage": "Group H", "home": "Saudi Arabia", "away": "Uruguay", "venue": "Miami, USA", "hostTimeZone": "America/New_York", "date": "2026-06-16", "time": "08:00", "watchWindow": "Morning", "australia": false}, {"id": 14, "stage": "Group H", "home": "Spain", "away": "Cape Verde", "venue": "Atlanta, USA", "hostTimeZone": "America/New_York", "date": "2026-06-16", "time": "02:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 15, "stage": "Group G", "home": "Iran", "away": "New Zealand", "venue": "Los Angeles, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-06-16", "time": "11:00", "watchWindow": "Morning", "australia": false}, {"id": 16, "stage": "Group G", "home": "Belgium", "away": "Egypt", "venue": "Seattle, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-06-16", "time": "05:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 17, "stage": "Group I", "home": "France", "away": "Senegal", "venue": "New Jersey, USA", "hostTimeZone": "America/New_York", "date": "2026-06-17", "time": "05:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 18, "stage": "Group I", "home": "Iraq", "away": "Norway", "venue": "Foxborough, USA", "hostTimeZone": "America/New_York", "date": "2026-06-17", "time": "08:00", "watchWindow": "Morning", "australia": false}, {"id": 19, "stage": "Group J", "home": "Argentina", "away": "Algeria", "venue": "Kansas City, USA", "hostTimeZone": "America/Chicago", "date": "2026-06-17", "time": "11:00", "watchWindow": "Morning", "australia": false}, {"id": 20, "stage": "Group J", "home": "Austria", "away": "Jordan", "venue": "Santa Clara, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-06-17", "time": "14:00", "watchWindow": "Afternoon", "australia": false}, {"id": 21, "stage": "Group L", "home": "Ghana", "away": "Panama", "venue": "Toronto, Canada", "hostTimeZone": "America/Toronto", "date": "2026-06-18", "time": "09:00", "watchWindow": "Morning", "australia": false}, {"id": 22, "stage": "Group L", "home": "England", "away": "Croatia", "venue": "Arlington, USA", "hostTimeZone": "America/Chicago", "date": "2026-06-18", "time": "06:00", "watchWindow": "Morning", "australia": false}, {"id": 23, "stage": "Group K", "home": "Portugal", "away": "DR Congo", "venue": "Houston, USA", "hostTimeZone": "America/Chicago", "date": "2026-06-18", "time": "03:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 24, "stage": "Group K", "home": "Uzbekistan", "away": "Colombia", "venue": "Mexico City, Mexico", "hostTimeZone": "America/Mexico_City", "date": "2026-06-18", "time": "12:00", "watchWindow": "Afternoon", "australia": false}, {"id": 25, "stage": "Group A", "home": "Czech Republic", "away": "South Africa", "venue": "Atlanta, USA", "hostTimeZone": "America/New_York", "date": "2026-06-19", "time": "02:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 26, "stage": "Group B", "home": "Switzerland", "away": "Bosnia & Herzegovina", "venue": "Los Angeles, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-06-19", "time": "05:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 27, "stage": "Group B", "home": "Canada", "away": "Qatar", "venue": "Vancouver, Canada", "hostTimeZone": "America/Vancouver", "date": "2026-06-19", "time": "08:00", "watchWindow": "Morning", "australia": false}, {"id": 28, "stage": "Group A", "home": "Mexico", "away": "South Korea", "venue": "Zapopan, Mexico", "hostTimeZone": "America/Mexico_City", "date": "2026-06-19", "time": "11:00", "watchWindow": "Morning", "australia": false}, {"id": 29, "stage": "Group C", "home": "Brazil", "away": "Haiti", "venue": "Philadelphia, USA", "hostTimeZone": "America/New_York", "date": "2026-06-20", "time": "10:30", "watchWindow": "Morning", "australia": false}, {"id": 30, "stage": "Group C", "home": "Scotland", "away": "Morocco", "venue": "Foxborough, USA", "hostTimeZone": "America/New_York", "date": "2026-06-20", "time": "08:00", "watchWindow": "Morning", "australia": false}, {"id": 31, "stage": "Group D", "home": "Turkey", "away": "Paraguay", "venue": "Santa Clara, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-06-20", "time": "13:00", "watchWindow": "Afternoon", "australia": false}, {"id": 32, "stage": "Group D", "home": "USA", "away": "Australia", "venue": "Seattle, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-06-20", "time": "05:00", "watchWindow": "Late night / early morning", "australia": true}, {"id": 33, "stage": "Group E", "home": "Germany", "away": "Ivory Coast", "venue": "Toronto, Canada", "hostTimeZone": "America/Toronto", "date": "2026-06-21", "time": "06:00", "watchWindow": "Morning", "australia": false}, {"id": 34, "stage": "Group E", "home": "Ecuador", "away": "Curacao", "venue": "Kansas City, USA", "hostTimeZone": "America/Chicago", "date": "2026-06-21", "time": "10:00", "watchWindow": "Morning", "australia": false}, {"id": 35, "stage": "Group F", "home": "Netherlands", "away": "Sweden", "venue": "Houston, USA", "hostTimeZone": "America/Chicago", "date": "2026-06-21", "time": "03:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 36, "stage": "Group F", "home": "Tunisia", "away": "Japan", "venue": "Guadalupe, Mexico", "hostTimeZone": "America/Monterrey", "date": "2026-06-21", "time": "14:00", "watchWindow": "Afternoon", "australia": false}, {"id": 37, "stage": "Group H", "home": "Uruguay", "away": "Cape Verde", "venue": "Miami, USA", "hostTimeZone": "America/New_York", "date": "2026-06-22", "time": "08:00", "watchWindow": "Morning", "australia": false}, {"id": 38, "stage": "Group H", "home": "Spain", "away": "Saudi Arabia", "venue": "Atlanta, USA", "hostTimeZone": "America/New_York", "date": "2026-06-22", "time": "02:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 39, "stage": "Group G", "home": "Belgium", "away": "Iran", "venue": "Los Angeles, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-06-22", "time": "05:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 40, "stage": "Group G", "home": "New Zealand", "away": "Egypt", "venue": "Vancouver, Canada", "hostTimeZone": "America/Vancouver", "date": "2026-06-22", "time": "11:00", "watchWindow": "Morning", "australia": false}, {"id": 41, "stage": "Group I", "home": "Norway", "away": "Senegal", "venue": "Toronto, Canada", "hostTimeZone": "America/Toronto", "date": "2026-06-23", "time": "10:00", "watchWindow": "Morning", "australia": false}, {"id": 42, "stage": "Group I", "home": "France", "away": "Iraq", "venue": "Philadelphia, USA", "hostTimeZone": "America/New_York", "date": "2026-06-23", "time": "07:00", "watchWindow": "Morning", "australia": false}, {"id": 43, "stage": "Group J", "home": "Argentina", "away": "Austria", "venue": "Arlington, USA", "hostTimeZone": "America/Chicago", "date": "2026-06-23", "time": "03:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 44, "stage": "Group J", "home": "Jordan", "away": "Algeria", "venue": "Santa Clara, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-06-23", "time": "13:00", "watchWindow": "Afternoon", "australia": false}, {"id": 45, "stage": "Group L", "home": "England", "away": "Ghana", "venue": "Foxborough, USA", "hostTimeZone": "America/New_York", "date": "2026-06-24", "time": "06:00", "watchWindow": "Morning", "australia": false}, {"id": 46, "stage": "Group L", "home": "Panama", "away": "Croatia", "venue": "Foxborough, USA", "hostTimeZone": "America/New_York", "date": "2026-06-24", "time": "09:00", "watchWindow": "Morning", "australia": false}, {"id": 47, "stage": "Group K", "home": "Portugal", "away": "Uzbekistan", "venue": "Houston, USA", "hostTimeZone": "America/Chicago", "date": "2026-06-24", "time": "03:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 48, "stage": "Group K", "home": "Colombia", "away": "DR Congo", "venue": "Zapopan, Mexico", "hostTimeZone": "America/Mexico_City", "date": "2026-06-24", "time": "12:00", "watchWindow": "Afternoon", "australia": false}, {"id": 49, "stage": "Group C", "home": "Scotland", "away": "Brazil", "venue": "Miami, USA", "hostTimeZone": "America/New_York", "date": "2026-06-25", "time": "08:00", "watchWindow": "Morning", "australia": false}, {"id": 50, "stage": "Group C", "home": "Morocco", "away": "Haiti", "venue": "Atlanta, USA", "hostTimeZone": "America/New_York", "date": "2026-06-25", "time": "08:00", "watchWindow": "Morning", "australia": false}, {"id": 51, "stage": "Group B", "home": "Switzerland", "away": "Canada", "venue": "Vancouver, Canada", "hostTimeZone": "America/Vancouver", "date": "2026-06-25", "time": "05:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 52, "stage": "Group B", "home": "Bosnia & Herzegovina", "away": "Qatar", "venue": "Seattle, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-06-25", "time": "05:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 53, "stage": "Group A", "home": "Czech Republic", "away": "Mexico", "venue": "Mexico City, Mexico", "hostTimeZone": "America/Mexico_City", "date": "2026-06-25", "time": "11:00", "watchWindow": "Morning", "australia": false}, {"id": 54, "stage": "Group A", "home": "South Africa", "away": "South Korea", "venue": "Guadalupe, Mexico", "hostTimeZone": "America/Monterrey", "date": "2026-06-25", "time": "11:00", "watchWindow": "Morning", "australia": false}, {"id": 55, "stage": "Group E", "home": "Curacao", "away": "Ivory Coast", "venue": "Philadelphia, USA", "hostTimeZone": "America/New_York", "date": "2026-06-26", "time": "06:00", "watchWindow": "Morning", "australia": false}, {"id": 56, "stage": "Group E", "home": "Ecuador", "away": "Germany", "venue": "New Jersey, USA", "hostTimeZone": "America/New_York", "date": "2026-06-26", "time": "06:00", "watchWindow": "Morning", "australia": false}, {"id": 57, "stage": "Group F", "home": "Japan", "away": "Sweden", "venue": "Arlington, USA", "hostTimeZone": "America/Chicago", "date": "2026-06-26", "time": "09:00", "watchWindow": "Morning", "australia": false}, {"id": 58, "stage": "Group F", "home": "Tunisia", "away": "Netherlands", "venue": "Kansas City, USA", "hostTimeZone": "America/Chicago", "date": "2026-06-26", "time": "09:00", "watchWindow": "Morning", "australia": false}, {"id": 59, "stage": "Group D", "home": "Turkey", "away": "USA", "venue": "Los Angeles, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-06-26", "time": "12:00", "watchWindow": "Afternoon", "australia": false}, {"id": 60, "stage": "Group D", "home": "Paraguay", "away": "Australia", "venue": "Santa Clara, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-06-26", "time": "12:00", "watchWindow": "Afternoon", "australia": true}, {"id": 61, "stage": "Group I", "home": "Norway", "away": "France", "venue": "Foxborough, USA", "hostTimeZone": "America/New_York", "date": "2026-06-27", "time": "05:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 62, "stage": "Group I", "home": "Senegal", "away": "Iraq", "venue": "Toronto, Canada", "hostTimeZone": "America/Toronto", "date": "2026-06-27", "time": "05:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 63, "stage": "Group G", "home": "Egypt", "away": "Iran", "venue": "Seattle, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-06-27", "time": "13:00", "watchWindow": "Afternoon", "australia": false}, {"id": 64, "stage": "Group G", "home": "New Zealand", "away": "Belgium", "venue": "Vancouver, Canada", "hostTimeZone": "America/Vancouver", "date": "2026-06-27", "time": "13:00", "watchWindow": "Afternoon", "australia": false}, {"id": 65, "stage": "Group H", "home": "Cape Verde", "away": "Saudi Arabia", "venue": "Houston, USA", "hostTimeZone": "America/Chicago", "date": "2026-06-27", "time": "10:00", "watchWindow": "Morning", "australia": false}, {"id": 66, "stage": "Group H", "home": "Uruguay", "away": "Spain", "venue": "Zapopan, Mexico", "hostTimeZone": "America/Mexico_City", "date": "2026-06-27", "time": "10:00", "watchWindow": "Morning", "australia": false}, {"id": 67, "stage": "Group L", "home": "Panama", "away": "England", "venue": "New Jersey, USA", "hostTimeZone": "America/New_York", "date": "2026-06-28", "time": "07:00", "watchWindow": "Morning", "australia": false}, {"id": 68, "stage": "Group L", "home": "Croatia", "away": "Ghana", "venue": "Philadelphia, USA", "hostTimeZone": "America/New_York", "date": "2026-06-28", "time": "07:00", "watchWindow": "Morning", "australia": false}, {"id": 69, "stage": "Group J", "home": "Algeria", "away": "Austria", "venue": "Kansas City, USA", "hostTimeZone": "America/Chicago", "date": "2026-06-28", "time": "12:00", "watchWindow": "Afternoon", "australia": false}, {"id": 70, "stage": "Group J", "home": "Jordan", "away": "Argentina", "venue": "Arlington, USA", "hostTimeZone": "America/Chicago", "date": "2026-06-28", "time": "12:00", "watchWindow": "Afternoon", "australia": false}, {"id": 71, "stage": "Group K", "home": "Colombia", "away": "Portugal", "venue": "Miami, USA", "hostTimeZone": "America/New_York", "date": "2026-06-28", "time": "09:30", "watchWindow": "Morning", "australia": false}, {"id": 72, "stage": "Group K", "home": "DR Congo", "away": "Uzbekistan", "venue": "Atlanta, USA", "hostTimeZone": "America/New_York", "date": "2026-06-28", "time": "09:30", "watchWindow": "Morning", "australia": false}, {"id": 73, "stage": "Round of 32", "home": "Group A runners-up", "away": "Group B runners-up", "venue": "Los Angeles, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-06-29", "time": "05:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 74, "stage": "Round of 32", "home": "Group E winners", "away": "Group A/B/C/D/F third place", "venue": "Foxborough, USA", "hostTimeZone": "America/New_York", "date": "2026-06-30", "time": "06:30", "watchWindow": "Morning", "australia": false}, {"id": 75, "stage": "Round of 32", "home": "Group F winners", "away": "Group C runners-up", "venue": "Guadalupe, Mexico", "hostTimeZone": "America/Monterrey", "date": "2026-06-30", "time": "11:00", "watchWindow": "Morning", "australia": false}, {"id": 76, "stage": "Round of 32", "home": "Group C winners", "away": "Group F runners-up", "venue": "Houston, USA", "hostTimeZone": "America/Chicago", "date": "2026-06-30", "time": "03:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 77, "stage": "Round of 32", "home": "Group I winners", "away": "Group C/D/F/G/H third place", "venue": "New Jersey, USA", "hostTimeZone": "America/New_York", "date": "2026-07-01", "time": "07:00", "watchWindow": "Morning", "australia": false}, {"id": 78, "stage": "Round of 32", "home": "Group E runners-up", "away": "Group I runners-up", "venue": "Arlington, USA", "hostTimeZone": "America/Chicago", "date": "2026-07-01", "time": "03:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 79, "stage": "Round of 32", "home": "Group A winners", "away": "Group C/E/F/H/I third place", "venue": "Mexico City, Mexico", "hostTimeZone": "America/Mexico_City", "date": "2026-07-01", "time": "11:00", "watchWindow": "Morning", "australia": false}, {"id": 80, "stage": "Round of 32", "home": "Group L winners", "away": "Group E/H/I/J/K third place", "venue": "Atlanta, USA", "hostTimeZone": "America/New_York", "date": "2026-07-02", "time": "02:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 81, "stage": "Round of 32", "home": "Group D winners", "away": "Group B/E/F/I/J third place", "venue": "Santa Clara, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-07-02", "time": "10:00", "watchWindow": "Morning", "australia": false}, {"id": 82, "stage": "Round of 32", "home": "Group G winners", "away": "Group A/E/H/I/J third place", "venue": "Seattle, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-07-02", "time": "06:00", "watchWindow": "Morning", "australia": false}, {"id": 83, "stage": "Round of 32", "home": "Group K runners-up", "away": "Group L runners-up", "venue": "Toronto, Canada", "hostTimeZone": "America/Toronto", "date": "2026-07-03", "time": "09:00", "watchWindow": "Morning", "australia": false}, {"id": 84, "stage": "Round of 32", "home": "Group H winners", "away": "Group J runners-up", "venue": "Los Angeles, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-07-03", "time": "05:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 85, "stage": "Round of 32", "home": "Group B winners", "away": "Group E/F/G/I/J third place", "venue": "Vancouver, Canada", "hostTimeZone": "America/Vancouver", "date": "2026-07-03", "time": "13:00", "watchWindow": "Afternoon", "australia": false}, {"id": 86, "stage": "Round of 32", "home": "Group J winners", "away": "Group H runners-up", "venue": "Miami, USA", "hostTimeZone": "America/New_York", "date": "2026-07-04", "time": "08:00", "watchWindow": "Morning", "australia": false}, {"id": 87, "stage": "Round of 32", "home": "Group K winners", "away": "Group D/E/I/J/L third place", "venue": "Kansas City, USA", "hostTimeZone": "America/Chicago", "date": "2026-07-04", "time": "11:30", "watchWindow": "Morning", "australia": false}, {"id": 88, "stage": "Round of 32", "home": "Group D runners-up", "away": "Group G runners-up", "venue": "Arlington, USA", "hostTimeZone": "America/Chicago", "date": "2026-07-04", "time": "04:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 89, "stage": "Round of 16", "home": "Match 74 winners", "away": "Match 77 winners", "venue": "Philadelphia, USA", "hostTimeZone": "America/New_York", "date": "2026-07-05", "time": "07:00", "watchWindow": "Morning", "australia": false}, {"id": 90, "stage": "Round of 16", "home": "Match 73 winners", "away": "Match 75 winners", "venue": "Houston, USA", "hostTimeZone": "America/Chicago", "date": "2026-07-05", "time": "03:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 91, "stage": "Round of 16", "home": "Match 76 winners", "away": "Match 78 winners", "venue": "New Jersey, USA", "hostTimeZone": "America/New_York", "date": "2026-07-06", "time": "06:00", "watchWindow": "Morning", "australia": false}, {"id": 92, "stage": "Round of 16", "home": "Match 79 winners", "away": "Match 80 winners", "venue": "Mexico City, Mexico", "hostTimeZone": "America/Mexico_City", "date": "2026-07-06", "time": "10:00", "watchWindow": "Morning", "australia": false}, {"id": 93, "stage": "Round of 16", "home": "Match 83 winners", "away": "Match 84 winners", "venue": "Arlington, USA", "hostTimeZone": "America/Chicago", "date": "2026-07-07", "time": "05:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 94, "stage": "Round of 16", "home": "Match 81 winners", "away": "Match 82 winners", "venue": "Seattle, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-07-07", "time": "10:00", "watchWindow": "Morning", "australia": false}, {"id": 95, "stage": "Round of 16", "home": "Match 86 winners", "away": "Match 88 winners", "venue": "Atlanta, USA", "hostTimeZone": "America/New_York", "date": "2026-07-08", "time": "02:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 96, "stage": "Round of 16", "home": "Match 85 winners", "away": "Match 87 winners", "venue": "Vancouver, Canada", "hostTimeZone": "America/Vancouver", "date": "2026-07-08", "time": "06:00", "watchWindow": "Morning", "australia": false}, {"id": 97, "stage": "Quarter-final", "home": "Match 89 winners", "away": "Match 90 winners", "venue": "Foxborough, USA", "hostTimeZone": "America/New_York", "date": "2026-07-10", "time": "06:00", "watchWindow": "Morning", "australia": false}, {"id": 98, "stage": "Quarter-final", "home": "Match 93 winners", "away": "Match 94 winners", "venue": "Los Angeles, USA", "hostTimeZone": "America/Los_Angeles", "date": "2026-07-11", "time": "05:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 99, "stage": "Quarter-final", "home": "Match 91 winners", "away": "Match 92 winners", "venue": "Miami, USA", "hostTimeZone": "America/New_York", "date": "2026-07-12", "time": "07:00", "watchWindow": "Morning", "australia": false}, {"id": 100, "stage": "Quarter-final", "home": "Match 95 winners", "away": "Match 96 winners", "venue": "Kansas City, USA", "hostTimeZone": "America/Chicago", "date": "2026-07-12", "time": "11:00", "watchWindow": "Morning", "australia": false}, {"id": 101, "stage": "Semi-final", "home": "Match 97 winners", "away": "Match 98 winners", "venue": "Arlington, USA", "hostTimeZone": "America/Chicago", "date": "2026-07-15", "time": "05:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 102, "stage": "Semi-final", "home": "Match 99 winners", "away": "Match 100 winners", "venue": "Atlanta, USA", "hostTimeZone": "America/New_York", "date": "2026-07-16", "time": "05:00", "watchWindow": "Late night / early morning", "australia": false}, {"id": 103, "stage": "Third Place Playoff", "home": "Match 101 losers", "away": "Match 102 losers", "venue": "Miami, USA", "hostTimeZone": "America/New_York", "date": "2026-07-19", "time": "07:00", "watchWindow": "Morning", "australia": false}, {"id": 104, "stage": "Final", "home": "Match 101 winners", "away": "Match 102 winners", "venue": "New Jersey, USA", "hostTimeZone": "America/New_York", "date": "2026-07-20", "time": "05:00", "watchWindow": "Late night / early morning", "australia": false}];
+    const BASE_STORAGE_KEY = "world-cup-calendar-edits-v3";
+    const STORAGE_KEY = BASE_STORAGE_KEY + "::" + location.pathname;
+
+    let state = {
+      edits: safeLoad(),
+      query: "",
+      view: "agenda",
+      selectedId: null,
+      showTests: false,
+      colourFilter: "all",
+      calendarDate: new Date("2026-06-12T12:00:00"),
+      backupText: "",
+      importText: "",
+      backupMessage: ""
+    };
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    }
+
+    function safeLoad() {
+      try {
+        const pathSaved = localStorage.getItem(STORAGE_KEY);
+        if (pathSaved) return JSON.parse(pathSaved);
+        const oldSaved = localStorage.getItem(BASE_STORAGE_KEY);
+        if (oldSaved) return JSON.parse(oldSaved);
+        return {};
+      } catch { return {}; }
+    }
+
+    function persist() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.edits)); } catch {}
+    }
+
+    function minutes(t) {
+      const [h, m] = String(t || "00:00").split(":").map(Number);
+      return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+    }
+
+    function timeLabel(t) {
+      const [h, m] = String(t || "00:00").split(":").map(Number);
+      const hour24 = Number.isFinite(h) ? h : 0;
+      const minute = Number.isFinite(m) ? m : 0;
+      const suffix = hour24 >= 12 ? "pm" : "am";
+      const hour = hour24 % 12 || 12;
+      return `${hour}:${String(minute).padStart(2, "0")}${suffix}`;
+    }
+
+    function dateLabel(date) {
+      const d = new Date(`${date}T12:00:00`);
+      if (Number.isNaN(d.getTime())) return date || "No date";
+      return d.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" });
+    }
+
+    function shortDayLabel(d) {
+      return d.toLocaleDateString("en-AU", { weekday:"short" });
+    }
+
+    function dayIndex(date) {
+      const d = new Date(`${date}T12:00:00`);
+      return Number.isNaN(d.getTime()) ? -1 : d.getDay();
+    }
+
+    function isWeekendViewingWindow(date, time) {
+      const d = dayIndex(date);
+      const m = minutes(time);
+      return (d === 5 && m >= 18 * 60) || d === 6 || (d === 0 && m <= 23 * 60 + 30);
+    }
+
+    function colourGroup(event) {
+      if (event.mustWatch) return "mustWatch";
+      if (isWeekendViewingWindow(event.date, event.time)) return "weekend";
+      const m = minutes(event.time);
+      if (m >= 0 && m <= 295) return "early";
+      if (m >= 300 && m <= 600) return "morning";
+      return "other";
+    }
+
+    function colourClass(event) { return "bg-" + colourGroup(event); }
+
+    function dateKey(d) {
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    }
+
+    function addDays(date, amount) {
+      const d = new Date(date);
+      d.setDate(d.getDate() + amount);
+      return d;
+    }
+
+    function startOfWeek(date) { return addDays(date, -date.getDay()); }
+
+    function startOfMonthGrid(date) {
+      return startOfWeek(new Date(date.getFullYear(), date.getMonth(), 1, 12, 0, 0));
+    }
+
+    function monthTitle(date) {
+      return date.toLocaleDateString("en-AU", { month:"long", year:"numeric" });
+    }
+
+    function events() {
+      return BASE_MATCHES.map(m => Object.assign({}, m, state.edits[m.id] || {}));
+    }
+
+    function filteredEvents() {
+      const q = state.query.trim().toLowerCase();
+      return events()
+        .filter(e => {
+          const text = `${e.id} ${e.stage} ${e.home} ${e.away} ${e.venue} ${e.notes || ""} ${e.customTitle || ""} ${e.watchStatus || ""}`.toLowerCase();
+          if (q && !text.includes(q)) return false;
+          return state.colourFilter === "all" || colourGroup(e) === state.colourFilter;
+        })
+        .sort((a,b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+    }
+
+    function groupByDate(list) {
+      const g = {};
+      for (const e of list) (g[e.date] ||= []).push(e);
+      return g;
+    }
+
+    function statusBadge(status) {
+      if (!status) return "";
+      const labels = { live:"Watch live", replay:"Watch replay", skip:"Skip" };
+      const icons = { live:"●", replay:"↻", skip:"×" };
+      return `<span class="badge ${status}"><span>${icons[status] || "•"}</span> ${labels[status] || escapeHtml(status)}</span>`;
+    }
+
+    function statusDot(status) {
+      if (!status) return "";
+      return `<span title="${status}" class="status-dot status-${escapeHtml(status)}"></span>`;
+    }
+
+    function matchTitle(e) { return e.customTitle || `${e.home} vs ${e.away}`; }
+
+    function renderEventRow(e) {
+      return `<button class="event-row ${colourClass(e)}" onclick="openEditor(${e.id})">
+        <div class="event-row-inner">
+          <div>
+            <div class="badges">
+              <span class="badge dark">#${e.id}</span>
+              <span class="badge light">${escapeHtml(e.stage)}</span>
+              ${e.mustWatch ? '<span class="badge must"><span style="font-size:16px;line-height:1">★</span> Must watch</span>' : ''}
+              ${e.watched ? '<span class="badge watched">Watched</span>' : ''}
+              ${statusBadge(e.watchStatus)}
+            </div>
+            <div class="event-title">${escapeHtml(matchTitle(e))}</div>
+            <div class="meta">${escapeHtml(dateLabel(e.date))} · ${escapeHtml(timeLabel(e.time))} · ${escapeHtml(e.venue)}</div>
+            ${e.notes ? `<div class="notes">📝 ${escapeHtml(e.notes)}</div>` : ''}
+          </div>
+          <div class="big-time">${escapeHtml(timeLabel(e.time))}</div>
+        </div>
+      </button>`;
+    }
+
+    function renderEventCard(e) {
+      return `<button class="event-card ${colourClass(e)}" onclick="openEditor(${e.id})">
+        <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+          <div>
+            <div class="badges"><span class="meta" style="font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;">Match #${e.id} · ${escapeHtml(e.stage)}</span>${statusBadge(e.watchStatus)}</div>
+            <div class="event-title">${escapeHtml(matchTitle(e))}</div>
+            <div class="meta">${escapeHtml(e.venue)}</div>
+          </div>
+          <div class="badge dark" style="border-radius:12px; padding:8px 10px;">${escapeHtml(timeLabel(e.time))}</div>
+        </div>
+        ${e.notes ? `<div class="notes">📝 ${escapeHtml(e.notes)}</div>` : ''}
+      </button>`;
+    }
+
+    function renderMini(e, compact=false) {
+      return `<button class="mini ${colourClass(e)}" onclick="openEditor(${e.id})">
+        <div class="mini-top">
+          <span class="mini-time">${escapeHtml(timeLabel(e.time))}</span>
+          <span style="display:flex;align-items:center;gap:4px;">${statusDot(e.watchStatus)}${e.mustWatch ? '<span class="star">★</span>' : ''}</span>
+        </div>
+        <div class="mini-title">${escapeHtml(matchTitle(e))}</div>
+      </button>`;
+    }
+
+    function runSelfTests() {
+      const results = [];
+      const test = (name, pass) => results.push({name, pass: Boolean(pass)});
+      test("loads 104 matches", BASE_MATCHES.length === 104);
+      test("12:00am is blue window", colourGroup({date:"2026-06-15", time:"00:00"}) === "early");
+      test("4:55am is blue window", colourGroup({date:"2026-06-15", time:"04:55"}) === "early");
+      test("5:00am is yellow window", colourGroup({date:"2026-06-15", time:"05:00"}) === "morning");
+      test("10:00am is yellow window", colourGroup({date:"2026-06-15", time:"10:00"}) === "morning");
+      test("10:30am has no blue/yellow", colourGroup({date:"2026-06-15", time:"10:30"}) === "other");
+      test("Friday 6pm is weekend green", colourGroup({date:"2026-06-12", time:"18:00"}) === "weekend");
+      test("Sunday 11:30pm is weekend green", colourGroup({date:"2026-06-14", time:"23:30"}) === "weekend");
+      test("must watch overrides all colour groups", colourGroup({date:"2026-06-14", time:"05:00", mustWatch:true}) === "mustWatch");
+      test("Australia match searchable data exists", BASE_MATCHES.some(m => `${m.home} ${m.away}`.includes("Australia")));
+      return results;
+    }
+
+    function renderToolbar(list) {
+      const earlyCount = list.filter(e => colourGroup(e) === "early").length;
+      const morningCount = list.filter(e => colourGroup(e) === "morning").length;
+      const weekendCount = list.filter(e => colourGroup(e) === "weekend").length;
+      const tests = runSelfTests();
+      const failedTests = tests.filter(t => !t.pass).length;
+      return `
+        <header class="hero">
+          <div class="hero-inner">
+            <div>
+              <div class="eyebrow">Sydney time</div>
+              <h1>World Cup Calendar</h1>
+              <p>Standalone local version. Double-click this HTML file to use it. Edits save in this browser for this file path.</p>
+            </div>
+            <div class="stats">
+              <div class="stat"><div class="num">${list.length}</div><div class="lab">shown</div></div>
+              <div class="stat"><div class="num">${earlyCount}</div><div class="lab">12–4:55am</div></div>
+              <div class="stat"><div class="num">${morningCount}</div><div class="lab">5–10am</div></div>
+              <div class="stat"><div class="num">${weekendCount}</div><div class="lab">Fri night–Sun</div></div>
+            </div>
+          </div>
+        </header>
+        <section class="toolbar ${state.view === "agenda" ? "sticky" : ""}">
+          <div class="toolbar-row">
+            <label class="searchbox"><span>⌕</span><input type="search" id="search" placeholder="Search team, venue, stage, notes..." value="${escapeHtml(state.query)}"></label>
+            <div class="controls">
+              ${["agenda","days","week","month"].map(v => `<button class="btn ${state.view===v?'active':''}" onclick="setView('${v}')">${v === "agenda" ? "☰" : v === "days" ? "▦" : v === "week" ? "7" : "□"} ${v[0].toUpperCase()+v.slice(1)}</button>`).join("")}
+              <button class="btn ${failedTests ? '' : ''}" onclick="toggleTests()">Tests: ${failedTests ? failedTests + " fail" : "pass"}</button>
+              <select id="colourFilter">
+                <option value="all" ${state.colourFilter==="all" ? "selected" : ""}>All colour groups</option>
+                <option value="mustWatch" ${state.colourFilter==="mustWatch" ? "selected" : ""}>Red: Must watch</option>
+                <option value="weekend" ${state.colourFilter==="weekend" ? "selected" : ""}>Light green: Fri 6pm–Sun 11:30pm</option>
+                <option value="early" ${state.colourFilter==="early" ? "selected" : ""}>Blue: 12:00am–4:55am</option>
+                <option value="morning" ${state.colourFilter==="morning" ? "selected" : ""}>Yellow: 5:00am–10:00am</option>
+                <option value="other" ${state.colourFilter==="other" ? "selected" : ""}>No colour: other times</option>
+              </select>
+              <button class="btn" onclick="exportBackup()">Show backup text</button>
+              <label class="file-label">Import backup<input class="hidden" type="file" accept="application/json" onchange="importBackupFile(this.files && this.files[0])"></label>
+              <button class="btn" onclick="resetAll()">Reset all edits</button>
+            </div>
+          </div>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--red-50);border-color:var(--red-400);"></span>Must watch override</span>
+            <span><span class="swatch" style="background:var(--blue-50);border-color:var(--blue-300);"></span>12:00am–4:55am</span>
+            <span><span class="swatch" style="background:var(--yellow-50);border-color:var(--yellow-300);"></span>5:00am–10:00am</span>
+            <span><span class="swatch" style="background:var(--green-50);border-color:var(--green-300);"></span>Fri 6:00pm–Sun 11:30pm</span>
+            <span><span class="swatch" style="background:white;"></span>Other times</span>
+          </div>
+          ${renderBackupPanel()}
+          ${state.showTests ? renderTests(tests) : ""}
+        </section>`;
+    }
+
+    function renderBackupPanel() {
+      if (!state.backupText && !state.backupMessage) return "";
+      return `<div class="backup">
+        <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+          <strong>Backup / Import</strong>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn" onclick="copyBackup()">Copy backup text</button>
+            <button class="btn primary" onclick="closeBackupPanel()">Close</button>
+          </div>
+        </div>
+        ${state.backupMessage ? `<div class="notes">${escapeHtml(state.backupMessage)}</div>` : ""}
+        ${state.backupText ? `<textarea readonly onclick="this.select()">${escapeHtml(state.backupText)}</textarea>` : ""}
+        <div style="margin-top:12px;font-weight:800;">Import from pasted backup text</div>
+        <textarea id="importText" placeholder="Paste backup JSON here...">${escapeHtml(state.importText)}</textarea>
+        <button class="btn primary" onclick="importBackupText()">Import pasted backup</button>
+      </div>`;
+    }
+
+    function renderTests(tests) {
+      return `<div class="backup"><strong>Self-tests</strong><div class="test-grid" style="margin-top:8px;">${tests.map(t => `<div class="${t.pass ? "test-pass" : "test-fail"}">${t.pass ? "✓" : "✗"} ${escapeHtml(t.name)}</div>`).join("")}</div></div>`;
+    }
+
+    function renderCalendarNav() {
+      if (!(state.view === "week" || state.view === "month")) return "";
+      const start = startOfWeek(state.calendarDate);
+      const end = addDays(start, 6);
+      const label = state.view === "month" ? monthTitle(state.calendarDate) : `${dateLabel(dateKey(start))} – ${dateLabel(dateKey(end))}`;
+      return `<div class="cal-nav">
+        <button class="btn" onclick="moveCalendar(-1)">← Previous</button>
+        <div class="cal-title">${escapeHtml(label)}</div>
+        <div style="display:flex;gap:8px;"><button class="btn" onclick="calendarStart()">Start</button><button class="btn" onclick="moveCalendar(1)">Next →</button></div>
+      </div>`;
+    }
+
+    function renderAgenda(list) { return `<div style="display:flex;flex-direction:column;gap:12px;">${list.map(renderEventRow).join("")}</div>`; }
+
+    function renderDays(list) {
+      const by = groupByDate(list);
+      return `<div style="display:flex;flex-direction:column;gap:20px;">${Object.keys(by).sort().map(date => `<div class="day-block"><div class="day-head">${escapeHtml(dateLabel(date))}</div><div class="day-grid">${by[date].map(renderEventCard).join("")}</div></div>`).join("")}</div>`;
+    }
+
+    function renderWeek(list) {
+      const start = startOfWeek(state.calendarDate);
+      const days = Array.from({length:7}, (_,i) => addDays(start, i));
+      const by = groupByDate(list);
+      return `<div class="week">
+        <div class="week-head">${days.map(d => `<div><div>${escapeHtml(shortDayLabel(d))}</div><div style="font-size:12px;color:var(--slate-300);">${d.getDate()} ${d.toLocaleDateString("en-AU", {month:"short"})}</div></div>`).join("")}</div>
+        <div class="week-grid">${days.map(d => {
+          const key = dateKey(d);
+          const evs = (by[key] || []).sort((a,b)=>minutes(a.time)-minutes(b.time));
+          return `<div class="week-day"><div class="meta" style="margin-bottom:8px;font-weight:800;">${escapeHtml(dateLabel(key))}</div>${evs.length ? evs.map(e => renderMini(e)).join("") : '<div class="empty">No matches</div>'}</div>`;
+        }).join("")}</div>
+      </div>`;
+    }
+
+    function renderMonth(list) {
+      const start = startOfMonthGrid(state.calendarDate);
+      const days = Array.from({length:42}, (_,i) => addDays(start, i));
+      const by = groupByDate(list);
+      return `<div class="month">
+        <div class="month-head">${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d => `<div>${d}</div>`).join("")}</div>
+        <div class="month-grid">${days.map(d => {
+          const key = dateKey(d);
+          const evs = (by[key] || []).sort((a,b)=>minutes(a.time)-minutes(b.time));
+          const muted = d.getMonth() !== state.calendarDate.getMonth();
+          return `<div class="month-day ${muted ? "muted" : ""}"><div class="day-num"><strong>${d.getDate()}</strong>${evs.length ? `<span class="count-pill">${evs.length}</span>` : ""}</div>${evs.map(e => renderMini(e, true)).join("")}</div>`;
+        }).join("")}</div>
+      </div>`;
+    }
+
+    function renderEditor(e) {
+      if (!e) return "";
+      return `<div class="modal" role="dialog" aria-modal="true">
+        <div class="modal-card">
+          <div class="modal-head"><div class="small">Editing match #${e.id}</div><h2>${escapeHtml(matchTitle(e))}</h2></div>
+          <div class="form">
+            <label>Title override<input id="editTitle" type="text" value="${escapeHtml(e.customTitle || "")}" placeholder="${escapeHtml(e.home + " vs " + e.away)}"></label>
+            <label>Stage<input id="editStage" type="text" value="${escapeHtml(e.stage || "")}"></label>
+            <label>Sydney date<input id="editDate" type="date" value="${escapeHtml(e.date || "")}"></label>
+            <label>Sydney time<input id="editTime" type="time" value="${escapeHtml(e.time || "")}"></label>
+            <label class="span2">Venue<input id="editVenue" type="text" value="${escapeHtml(e.venue || "")}"></label>
+            <label class="span2">Notes<textarea id="editNotes" placeholder="Leave notes here...">${escapeHtml(e.notes || "")}</textarea></label>
+            <label class="span2">Watch status
+              <select id="editWatchStatus">
+                <option value="" ${!e.watchStatus ? "selected" : ""}>No status</option>
+                <option value="live" ${e.watchStatus === "live" ? "selected" : ""}>Watch live</option>
+                <option value="replay" ${e.watchStatus === "replay" ? "selected" : ""}>Watch replay</option>
+                <option value="skip" ${e.watchStatus === "skip" ? "selected" : ""}>Skip</option>
+              </select>
+            </label>
+            <label class="checkrow"><input id="editMustWatch" type="checkbox" ${e.mustWatch ? "checked" : ""}> Must watch</label>
+            <label class="checkrow"><input id="editWatched" type="checkbox" ${e.watched ? "checked" : ""}> Watched</label>
+          </div>
+          <div class="modal-actions">
+            <button class="btn" onclick="resetEvent(${e.id})">↺ Reset</button>
+            <div class="right-actions"><button class="btn" onclick="closeEditor()">Cancel</button><button class="btn green" onclick="saveEditor(${e.id})">✓ Save</button></div>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function render() {
+      const list = filteredEvents();
+      let main = "";
+      if (state.view === "agenda") main = renderAgenda(list);
+      if (state.view === "days") main = renderDays(list);
+      if (state.view === "week") main = renderCalendarNav() + renderWeek(list);
+      if (state.view === "month") main = renderCalendarNav() + renderMonth(list);
+      const selected = state.selectedId ? events().find(e => e.id === state.selectedId) : null;
+      document.getElementById("app").innerHTML = `<div class="page"><div class="wrap">${renderToolbar(list)}${main}</div>${renderEditor(selected)}</div>`;
+      bindInputs();
+    }
+
+    function bindInputs() {
+      const search = document.getElementById("search");
+      if (search) search.addEventListener("input", e => { state.query = e.target.value; render(); });
+      const colourFilter = document.getElementById("colourFilter");
+      if (colourFilter) colourFilter.addEventListener("change", e => { state.colourFilter = e.target.value; render(); });
+      const importText = document.getElementById("importText");
+      if (importText) importText.addEventListener("input", e => { state.importText = e.target.value; });
+    }
+
+    function setView(v) { state.view = v; render(); }
+    function toggleTests() { state.showTests = !state.showTests; render(); }
+    function openEditor(id) { state.selectedId = id; render(); }
+    function closeEditor() { state.selectedId = null; render(); }
+    function calendarStart() { state.calendarDate = new Date("2026-06-12T12:00:00"); render(); }
+    function moveCalendar(amount) {
+      const next = new Date(state.calendarDate);
+      if (state.view === "month") next.setMonth(next.getMonth() + amount);
+      else next.setDate(next.getDate() + amount * 7);
+      state.calendarDate = next; render();
+    }
+
+    function saveEditor(id) {
+      const original = events().find(e => e.id === id);
+      state.edits[id] = {
+        customTitle: document.getElementById("editTitle").value || "",
+        date: document.getElementById("editDate").value,
+        time: document.getElementById("editTime").value,
+        venue: document.getElementById("editVenue").value,
+        stage: document.getElementById("editStage").value,
+        notes: document.getElementById("editNotes").value || "",
+        mustWatch: document.getElementById("editMustWatch").checked,
+        watched: document.getElementById("editWatched").checked,
+        watchStatus: document.getElementById("editWatchStatus").value || ""
+      };
+      state.selectedId = null;
+      persist();
+      render();
+    }
+
+    function resetEvent(id) {
+      delete state.edits[id];
+      state.selectedId = null;
+      persist();
+      render();
+    }
+
+    function resetAll() {
+      if (!confirm("Reset all edits, notes and statuses saved for this local app?")) return;
+      state.edits = {};
+      persist();
+      render();
+    }
+
+    function getBackupPayload() {
+      return JSON.stringify({
+        app: "world-cup-calendar-local-html",
+        version: 1,
+        storageKey: STORAGE_KEY,
+        exportedAt: new Date().toISOString(),
+        edits: state.edits
+      }, null, 2);
+    }
+
+    function exportBackup() {
+      state.backupText = getBackupPayload();
+      state.backupMessage = "Backup created below. Copy it into Notes, Google Drive, or a text file.";
+      render();
+    }
+
+    async function copyBackup() {
+      const text = state.backupText || getBackupPayload();
+      state.backupText = text;
+      try {
+        await navigator.clipboard.writeText(text);
+        state.backupMessage = "Backup copied to clipboard.";
+      } catch {
+        state.backupMessage = "Copy may be blocked locally. Select the backup text and copy it manually.";
+      }
+      render();
+    }
+
+    function closeBackupPanel() {
+      state.backupText = "";
+      state.importText = "";
+      state.backupMessage = "";
+      render();
+    }
+
+    function importBackupText() {
+      try {
+        const parsed = JSON.parse(state.importText || "{}");
+        const importedEdits = parsed.edits && typeof parsed.edits === "object" ? parsed.edits : parsed;
+        state.edits = importedEdits || {};
+        persist();
+        state.backupMessage = "Backup imported successfully.";
+      } catch {
+        state.backupMessage = "Could not import backup. Paste the full JSON backup text and try again.";
+      }
+      render();
+    }
+
+    function importBackupFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        state.importText = String(reader.result || "");
+        try {
+          const parsed = JSON.parse(state.importText || "{}");
+          const importedEdits = parsed.edits && typeof parsed.edits === "object" ? parsed.edits : parsed;
+          state.edits = importedEdits || {};
+          persist();
+          state.backupMessage = "Backup imported successfully.";
+        } catch {
+          state.backupMessage = "Could not import backup. Please choose a valid JSON backup file.";
+        }
+        render();
+      };
+      reader.readAsText(file);
+    }
+
+    render();
+  </script>
+</body>
+</html>
