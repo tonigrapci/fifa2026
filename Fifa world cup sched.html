@@ -42,6 +42,7 @@
     .toolbar { background:white; border:1px solid var(--slate-200); border-radius:28px; padding:16px; box-shadow:0 1px 6px rgba(15,23,42,.05); }
     .toolbar.sticky { position:sticky; top:12px; z-index:30; }
     .toolbar-summary { display:none; }
+    .toolbar-summary-main { min-width:0; display:flex; align-items:center; gap:8px; }
     .toolbar-row { display:flex; flex-direction:column; gap:12px; }
     .searchbox { position:relative; width:100%; }
     .searchbox span { position:absolute; left:12px; top:9px; color:var(--slate-400); }
@@ -51,6 +52,8 @@
     input[type="search"] { padding-left:40px; }
     .controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
     .btn, .file-label { border:1px solid var(--slate-200); background:white; color:var(--slate-900); border-radius:16px; padding:9px 14px; font-weight:700; display:inline-flex; align-items:center; gap:8px; text-decoration:none; }
+    .icon-btn { width:34px; height:34px; padding:0; justify-content:center; border-radius:999px; color:var(--slate-500); }
+    .icon-btn:hover { color:var(--slate-950); border-color:var(--slate-300); }
     .btn.active { background:var(--slate-950); color:white; }
     .btn.primary { background:var(--slate-950); color:white; border-color:var(--slate-950); }
     .btn.green { background:var(--emerald-600); color:white; border-color:var(--emerald-600); }
@@ -58,13 +61,13 @@
     .swatch { display:inline-block; width:16px; height:16px; border-radius:4px; vertical-align:middle; margin-right:4px; border:1px solid var(--slate-200); }
     .backup { margin-top:14px; background:var(--slate-50); border:1px solid var(--slate-200); border-radius:18px; padding:14px; font-size:14px; }
     .backup textarea { width:100%; min-height:140px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; }
-    .share-panel { margin-top:14px; background:var(--slate-950); color:white; border-radius:20px; padding:14px; display:grid; grid-template-columns:90px 1fr; gap:12px; align-items:center; }
-    .share-panel img { width:90px; border-radius:14px; border:1px solid rgba(255,255,255,.18); background:white; }
+    .share-panel { margin-top:14px; background:var(--slate-50); color:var(--slate-900); border:1px solid var(--slate-200); border-radius:18px; padding:12px; display:grid; grid-template-columns:64px 1fr; gap:10px; align-items:center; }
+    .share-panel img { width:64px; border-radius:12px; border:1px solid var(--slate-200); background:white; }
     .share-copy { min-width:0; }
-    .share-copy strong { display:block; font-size:16px; }
-    .share-copy span { display:block; color:var(--slate-300); font-size:13px; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .share-actions { margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; }
-    .share-status { margin-top:8px; color:var(--emerald-300); font-size:13px; font-weight:800; }
+    .share-copy strong { display:block; font-size:14px; }
+    .share-copy span { display:block; color:var(--slate-600); font-size:12px; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .share-actions { margin-top:8px; display:flex; flex-wrap:wrap; gap:8px; }
+    .share-status { margin-top:8px; color:var(--emerald-600); font-size:13px; font-weight:800; }
     .grid2 { display:grid; grid-template-columns:1fr; gap:12px; }
     .hidden { display:none !important; }
     .event-row, .event-card, .mini { width:100%; text-align:left; border:1px solid var(--slate-200); border-radius:24px; padding:16px; box-shadow:0 1px 5px rgba(15,23,42,.05); transition:.15s ease; }
@@ -118,7 +121,11 @@
     .modal-head { background:var(--slate-950); color:white; padding:20px; }
     .modal-head .small { color:var(--emerald-300); letter-spacing:.2em; text-transform:uppercase; font-size:12px; font-weight:800; }
     .modal-head h2 { margin:4px 0 0; }
-    .form { display:grid; grid-template-columns:1fr; gap:14px; padding:20px; }
+    .match-summary { background:var(--slate-50); border:1px solid var(--slate-200); border-radius:16px; padding:12px; color:var(--slate-700); }
+    .match-summary strong { display:block; color:var(--slate-950); font-size:16px; }
+    .match-summary span { display:block; margin-top:3px; font-size:13px; }
+    .form { display:grid; grid-template-columns:1fr 1fr; gap:14px; padding:20px; }
+    .span2 { grid-column: span 2; }
     label { font-size:14px; font-weight:800; }
     label > input, label > textarea, label > select { margin-top:6px; font-weight:400; }
     .checkrow { display:flex; align-items:center; gap:8px; }
@@ -140,8 +147,6 @@
       .week-grid { grid-template-columns:repeat(7,1fr); }
       .week-day { border-right:1px solid var(--slate-200); }
       .cal-nav { flex-direction:row; }
-      .form { grid-template-columns:1fr 1fr; }
-      .span2 { grid-column: span 2; }
       .modal-actions { flex-direction:row; align-items:center; }
     }
     @media (min-width: 1100px) { .day-grid { grid-template-columns:repeat(3,1fr); } }
@@ -165,8 +170,14 @@
       body.mobile-agenda-closed .toolbar.sticky .share-panel { display:none; }
       body.mobile-agenda-open .toolbar.sticky { position:static; }
       body.mobile-agenda-open .toolbar-summary { margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--slate-200); }
-      .share-panel { grid-template-columns:74px 1fr; padding:12px; }
-      .share-panel img { width:74px; }
+      .share-panel { grid-template-columns:54px 1fr; padding:10px; }
+      .share-panel img { width:54px; }
+      .modal { align-items:flex-start; overflow:auto; padding:10px; }
+      .modal-card { border-radius:20px; }
+      .modal-head { padding:14px 16px; }
+      .modal-head h2 { font-size:20px; line-height:1.1; }
+      .form { gap:10px; padding:14px; }
+      .modal-actions { padding:12px; }
       .month { overflow-x:auto; }
       .month-head, .month-grid { min-width:900px; }
       .week { overflow-x:auto; }
@@ -187,7 +198,6 @@
       view: "agenda",
       selectedId: null,
       showTests: false,
-      colourFilter: "all",
       calendarDate: new Date("2026-06-12T12:00:00"),
       backupText: "",
       importText: "",
@@ -288,9 +298,9 @@
       const q = state.query.trim().toLowerCase();
       return events()
         .filter(e => {
-          const text = `${e.id} ${e.stage} ${e.home} ${e.away} ${e.venue} ${e.notes || ""} ${e.customTitle || ""} ${e.watchStatus || ""}`.toLowerCase();
+          const text = `${e.id} ${e.stage} ${e.home} ${e.away} ${e.venue} ${e.notes || ""}`.toLowerCase();
           if (q && !text.includes(q)) return false;
-          return state.colourFilter === "all" || colourGroup(e) === state.colourFilter;
+          return true;
         })
         .sort((a,b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
     }
@@ -385,7 +395,6 @@
             <div>
               <div class="eyebrow">Sydney time</div>
               <h1>World Cup Calendar</h1>
-              <p>Standalone local version. Double-click this HTML file to use it. Edits save in this browser for this file path.</p>
             </div>
             <div class="stats">
               <div class="stat"><div class="num">${list.length}</div><div class="lab">shown</div></div>
@@ -397,22 +406,16 @@
         </header>
         <section class="toolbar ${state.view === "agenda" ? "sticky" : ""}">
           <div class="toolbar-summary">
-            <div class="toolbar-summary-text"><strong>Agenda</strong><br>${list.length} shown · ${state.colourFilter === "all" ? "All colours" : state.colourFilter}</div>
-            <button class="btn active" onclick="toggleMobileAgenda()">${state.mobileAgendaOpen ? "Hide" : "Open"} controls</button>
+            <div class="toolbar-summary-main">
+              <div class="toolbar-summary-text"><strong>Agenda</strong><br>${list.length} matches shown</div>
+              <button class="btn icon-btn" onclick="resetAll()" title="Reset all edits" aria-label="Reset all edits">↺</button>
+            </div>
+            <button class="btn active" onclick="toggleMobileAgenda()">${state.mobileAgendaOpen ? "Hide" : "Show"} filters</button>
           </div>
           <div class="toolbar-row">
             <label class="searchbox"><span>⌕</span><input type="search" id="search" placeholder="Search team, venue, stage, notes..." value="${escapeHtml(state.query)}"></label>
             <div class="controls">
               ${["agenda","days","week","month"].map(v => `<button class="btn ${state.view===v?'active':''}" onclick="setView('${v}')">${v === "agenda" ? "☰" : v === "days" ? "▦" : v === "week" ? "7" : "□"} ${v[0].toUpperCase()+v.slice(1)}</button>`).join("")}
-              <select id="colourFilter">
-                <option value="all" ${state.colourFilter==="all" ? "selected" : ""}>All colour groups</option>
-                <option value="mustWatch" ${state.colourFilter==="mustWatch" ? "selected" : ""}>Red: Must watch</option>
-                <option value="weekend" ${state.colourFilter==="weekend" ? "selected" : ""}>Light green: Fri 6pm–Sun 11:30pm</option>
-                <option value="early" ${state.colourFilter==="early" ? "selected" : ""}>Blue: 12:00am–4:55am</option>
-                <option value="morning" ${state.colourFilter==="morning" ? "selected" : ""}>Yellow: 5:00am–10:00am</option>
-                <option value="other" ${state.colourFilter==="other" ? "selected" : ""}>No colour: other times</option>
-              </select>
-              <button class="btn" onclick="resetAll()">Reset all edits</button>
             </div>
           </div>
           <div class="legend">
@@ -516,22 +519,16 @@
       if (!e) return "";
       return `<div class="modal" role="dialog" aria-modal="true">
         <div class="modal-card">
-          <div class="modal-head"><div class="small">Editing match #${e.id}</div><h2>${escapeHtml(matchTitle(e))}</h2></div>
+          <div class="modal-head"><div class="small">Match #${e.id}</div><h2>${escapeHtml(matchTitle(e))}</h2></div>
           <div class="form">
-            <label>Title override<input id="editTitle" type="text" value="${escapeHtml(e.customTitle || "")}" placeholder="${escapeHtml(e.home + " vs " + e.away)}"></label>
-            <label>Stage<input id="editStage" type="text" value="${escapeHtml(e.stage || "")}"></label>
+            <div class="match-summary span2">
+              <strong>${escapeHtml(e.stage)}</strong>
+              <span>${escapeHtml(e.home)} vs ${escapeHtml(e.away)}</span>
+            </div>
             <label>Sydney date<input id="editDate" type="date" value="${escapeHtml(e.date || "")}"></label>
             <label>Sydney time<input id="editTime" type="time" value="${escapeHtml(e.time || "")}"></label>
             <label class="span2">Venue<input id="editVenue" type="text" value="${escapeHtml(e.venue || "")}"></label>
             <label class="span2">Notes<textarea id="editNotes" placeholder="Leave notes here...">${escapeHtml(e.notes || "")}</textarea></label>
-            <label class="span2">Watch status
-              <select id="editWatchStatus">
-                <option value="" ${!e.watchStatus ? "selected" : ""}>No status</option>
-                <option value="live" ${e.watchStatus === "live" ? "selected" : ""}>Watch live</option>
-                <option value="replay" ${e.watchStatus === "replay" ? "selected" : ""}>Watch replay</option>
-                <option value="skip" ${e.watchStatus === "skip" ? "selected" : ""}>Skip</option>
-              </select>
-            </label>
             <label class="checkrow"><input id="editMustWatch" type="checkbox" ${e.mustWatch ? "checked" : ""}> Must watch</label>
             <label class="checkrow"><input id="editWatched" type="checkbox" ${e.watched ? "checked" : ""}> Watched</label>
           </div>
@@ -573,8 +570,6 @@
     function bindInputs() {
       const search = document.getElementById("search");
       if (search) search.addEventListener("input", e => { state.query = e.target.value; render(); });
-      const colourFilter = document.getElementById("colourFilter");
-      if (colourFilter) colourFilter.addEventListener("change", e => { state.colourFilter = e.target.value; render(); });
       const importText = document.getElementById("importText");
       if (importText) importText.addEventListener("input", e => { state.importText = e.target.value; });
     }
@@ -627,15 +622,12 @@
     function saveEditor(id) {
       const original = events().find(e => e.id === id);
       state.edits[id] = {
-        customTitle: document.getElementById("editTitle").value || "",
         date: document.getElementById("editDate").value,
         time: document.getElementById("editTime").value,
         venue: document.getElementById("editVenue").value,
-        stage: document.getElementById("editStage").value,
         notes: document.getElementById("editNotes").value || "",
         mustWatch: document.getElementById("editMustWatch").checked,
-        watched: document.getElementById("editWatched").checked,
-        watchStatus: document.getElementById("editWatchStatus").value || ""
+        watched: document.getElementById("editWatched").checked
       };
       state.selectedId = null;
       persist();
