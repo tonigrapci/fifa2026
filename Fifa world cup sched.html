@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="World Cup" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" type="image/svg+xml" href="assets/soccer-ball-icon.svg" />
+  <link rel="icon" type="image/svg+xml" href="assets/app-icon.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png" />
@@ -41,7 +41,7 @@
     .stat .lab { font-size:12px; color:var(--slate-300); }
     .toolbar { background:white; border:1px solid var(--slate-200); border-radius:28px; padding:16px; box-shadow:0 1px 6px rgba(15,23,42,.05); }
     .toolbar.sticky { position:sticky; top:12px; z-index:30; }
-    .toolbar-summary { display:none; }
+    .toolbar-summary { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--slate-200); }
     .toolbar-summary-main { min-width:0; display:flex; align-items:center; gap:8px; }
     .toolbar-row { display:flex; flex-direction:column; gap:12px; }
     .searchbox { position:relative; width:100%; }
@@ -83,6 +83,9 @@
     .badge.replay { background:var(--blue-50); color:var(--blue-600); border:1px solid var(--blue-300); }
     .badge.skip { background:var(--slate-200); color:var(--slate-700); border:1px solid var(--slate-300); }
     .event-title { margin:8px 0 4px; font-size:20px; font-weight:900; }
+    .flag-title { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+    .team-flag { font-size:22px; line-height:1; filter:saturate(.95); }
+    .flag-vs { color:var(--slate-500); font-size:14px; font-weight:900; text-transform:uppercase; }
     .meta { color:var(--slate-600); font-size:14px; }
     .notes { margin-top:10px; background:rgba(255,255,255,.7); border-radius:16px; padding:10px; color:var(--slate-700); }
     .big-time { font-size:28px; font-weight:900; text-align:right; }
@@ -155,7 +158,7 @@
       .wrap { gap:14px; }
       .hero { border-radius:22px; padding:18px; }
       .toolbar.sticky { top:8px; border-radius:20px; padding:10px; }
-      .toolbar-summary { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; }
+      .toolbar-summary { gap:10px; margin-bottom:0; padding-bottom:0; border-bottom:0; }
       .toolbar-summary-text { min-width:0; color:var(--slate-600); font-size:13px; font-weight:800; line-height:1.25; }
       .toolbar-summary .btn { flex:0 0 auto; padding:8px 10px; border-radius:14px; }
       .controls { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:stretch; }
@@ -183,6 +186,12 @@
       .week { overflow-x:auto; }
       .week-head, .week-grid { min-width:900px; }
     }
+    body.agenda-filters-closed .toolbar.sticky { padding:10px 14px; border-radius:20px; }
+    body.agenda-filters-closed .toolbar.sticky .toolbar-summary { margin-bottom:0; padding-bottom:0; border-bottom:0; }
+    body.agenda-filters-closed .toolbar.sticky .toolbar-row,
+    body.agenda-filters-closed .toolbar.sticky .legend,
+    body.agenda-filters-closed .toolbar.sticky .backup,
+    body.agenda-filters-closed .toolbar.sticky .share-panel { display:none; }
   </style>
 </head>
 <body>
@@ -203,7 +212,7 @@
       importText: "",
       backupMessage: "",
       shareMessage: "",
-      mobileAgendaOpen: false
+      mobileAgendaOpen: !window.matchMedia("(max-width: 700px)").matches
     };
 
     function escapeHtml(value) {
@@ -323,7 +332,28 @@
       return `<span title="${status}" class="status-dot status-${escapeHtml(status)}"></span>`;
     }
 
-    function matchTitle(e) { return e.customTitle || `${e.home} vs ${e.away}`; }
+    const TEAM_FLAGS = {
+      "Algeria":"🇩🇿", "Argentina":"🇦🇷", "Australia":"🇦🇺", "Austria":"🇦🇹", "Belgium":"🇧🇪",
+      "Bosnia & Herzegovina":"🇧🇦", "Brazil":"🇧🇷", "Canada":"🇨🇦", "Cape Verde":"🇨🇻", "Colombia":"🇨🇴",
+      "Croatia":"🇭🇷", "Curacao":"🇨🇼", "Czech Republic":"🇨🇿", "DR Congo":"🇨🇩", "Ecuador":"🇪🇨",
+      "Egypt":"🇪🇬", "England":"🏴", "France":"🇫🇷", "Germany":"🇩🇪", "Ghana":"🇬🇭",
+      "Haiti":"🇭🇹", "Iran":"🇮🇷", "Iraq":"🇮🇶", "Ivory Coast":"🇨🇮", "Japan":"🇯🇵",
+      "Jordan":"🇯🇴", "Mexico":"🇲🇽", "Morocco":"🇲🇦", "Netherlands":"🇳🇱", "New Zealand":"🇳🇿",
+      "Norway":"🇳🇴", "Panama":"🇵🇦", "Paraguay":"🇵🇾", "Portugal":"🇵🇹", "Qatar":"🇶🇦",
+      "Saudi Arabia":"🇸🇦", "Scotland":"🏴", "Senegal":"🇸🇳", "South Africa":"🇿🇦",
+      "South Korea":"🇰🇷", "Spain":"🇪🇸", "Sweden":"🇸🇪", "Switzerland":"🇨🇭", "Tunisia":"🇹🇳",
+      "Turkey":"🇹🇷", "Uruguay":"🇺🇾", "USA":"🇺🇸", "Uzbekistan":"🇺🇿"
+    };
+
+    function teamFlag(team) { return TEAM_FLAGS[team] || ""; }
+    function teamWithFlag(team) {
+      const flag = teamFlag(team);
+      return `${flag ? `<span class="team-flag" aria-hidden="true">${flag}</span>` : ""}<span>${escapeHtml(team)}</span>`;
+    }
+    function matchTitle(e) { return `${e.home} vs ${e.away}`; }
+    function matchTitleHtml(e) {
+      return `<span class="flag-title">${teamWithFlag(e.home)}<span class="flag-vs">vs</span>${teamWithFlag(e.away)}</span>`;
+    }
 
     function renderEventRow(e) {
       return `<button class="event-row ${colourClass(e)}" onclick="openEditor(${e.id})">
@@ -334,9 +364,8 @@
               <span class="badge light">${escapeHtml(e.stage)}</span>
               ${e.mustWatch ? '<span class="badge must"><span style="font-size:16px;line-height:1">★</span> Must watch</span>' : ''}
               ${e.watched ? '<span class="badge watched">Watched</span>' : ''}
-              ${statusBadge(e.watchStatus)}
             </div>
-            <div class="event-title">${escapeHtml(matchTitle(e))}</div>
+            <div class="event-title">${matchTitleHtml(e)}</div>
             <div class="meta">${escapeHtml(dateLabel(e.date))} · ${escapeHtml(timeLabel(e.time))} · ${escapeHtml(e.venue)}</div>
             ${e.notes ? `<div class="notes">📝 ${escapeHtml(e.notes)}</div>` : ''}
           </div>
@@ -349,8 +378,8 @@
       return `<button class="event-card ${colourClass(e)}" onclick="openEditor(${e.id})">
         <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
           <div>
-            <div class="badges"><span class="meta" style="font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;">Match #${e.id} · ${escapeHtml(e.stage)}</span>${statusBadge(e.watchStatus)}</div>
-            <div class="event-title">${escapeHtml(matchTitle(e))}</div>
+            <div class="badges"><span class="meta" style="font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;">Match #${e.id} · ${escapeHtml(e.stage)}</span></div>
+            <div class="event-title">${matchTitleHtml(e)}</div>
             <div class="meta">${escapeHtml(e.venue)}</div>
           </div>
           <div class="badge dark" style="border-radius:12px; padding:8px 10px;">${escapeHtml(timeLabel(e.time))}</div>
@@ -363,9 +392,9 @@
       return `<button class="mini ${colourClass(e)}" onclick="openEditor(${e.id})">
         <div class="mini-top">
           <span class="mini-time">${escapeHtml(timeLabel(e.time))}</span>
-          <span style="display:flex;align-items:center;gap:4px;">${statusDot(e.watchStatus)}${e.mustWatch ? '<span class="star">★</span>' : ''}</span>
+          <span style="display:flex;align-items:center;gap:4px;">${e.mustWatch ? '<span class="star">★</span>' : ''}</span>
         </div>
-        <div class="mini-title">${escapeHtml(matchTitle(e))}</div>
+        <div class="mini-title">${escapeHtml(`${teamFlag(e.home)} ${e.home} vs ${teamFlag(e.away)} ${e.away}`.trim())}</div>
       </button>`;
     }
 
@@ -523,7 +552,7 @@
           <div class="form">
             <div class="match-summary span2">
               <strong>${escapeHtml(e.stage)}</strong>
-              <span>${escapeHtml(e.home)} vs ${escapeHtml(e.away)}</span>
+              <span>${teamWithFlag(e.home)} <span class="flag-vs">vs</span> ${teamWithFlag(e.away)}</span>
             </div>
             <label>Sydney date<input id="editDate" type="date" value="${escapeHtml(e.date || "")}"></label>
             <label>Sydney time<input id="editTime" type="time" value="${escapeHtml(e.time || "")}"></label>
@@ -555,9 +584,15 @@
 
     let mobileAgendaBound = false;
     function updateMobileAgendaPanel() {
-      const isMobileAgenda = state.view === "agenda" && window.matchMedia("(max-width: 700px)").matches;
+      const isAgenda = state.view === "agenda";
+      const isMobileAgenda = isAgenda && window.matchMedia("(max-width: 700px)").matches;
+      document.body.classList.toggle("agenda-filters-closed", isAgenda && !state.mobileAgendaOpen);
+      document.body.classList.toggle("agenda-filters-open", isAgenda && state.mobileAgendaOpen);
       document.body.classList.toggle("mobile-agenda-closed", isMobileAgenda && !state.mobileAgendaOpen);
       document.body.classList.toggle("mobile-agenda-open", isMobileAgenda && state.mobileAgendaOpen);
+      if (!isAgenda) {
+        document.body.classList.remove("agenda-filters-closed", "agenda-filters-open");
+      }
       if (!isMobileAgenda) {
         document.body.classList.remove("mobile-agenda-closed", "mobile-agenda-open");
       }
