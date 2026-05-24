@@ -49,6 +49,13 @@
     .swatch { display:inline-block; width:16px; height:16px; border-radius:4px; vertical-align:middle; margin-right:4px; border:1px solid var(--slate-200); }
     .backup { margin-top:14px; background:var(--slate-50); border:1px solid var(--slate-200); border-radius:18px; padding:14px; font-size:14px; }
     .backup textarea { width:100%; min-height:140px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; }
+    .share-panel { margin-top:14px; background:var(--slate-950); color:white; border-radius:20px; padding:14px; display:grid; grid-template-columns:90px 1fr; gap:12px; align-items:center; }
+    .share-panel img { width:90px; border-radius:14px; border:1px solid rgba(255,255,255,.18); background:white; }
+    .share-copy { min-width:0; }
+    .share-copy strong { display:block; font-size:16px; }
+    .share-copy span { display:block; color:var(--slate-300); font-size:13px; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .share-actions { margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; }
+    .share-status { margin-top:8px; color:var(--emerald-300); font-size:13px; font-weight:800; }
     .grid2 { display:grid; grid-template-columns:1fr; gap:12px; }
     .hidden { display:none !important; }
     .event-row, .event-card, .mini { width:100%; text-align:left; border:1px solid var(--slate-200); border-radius:24px; padding:16px; box-shadow:0 1px 5px rgba(15,23,42,.05); transition:.15s ease; }
@@ -145,9 +152,12 @@
       body.mobile-agenda-closed .toolbar.sticky { padding:8px 10px; border-radius:18px; }
       body.mobile-agenda-closed .toolbar.sticky .toolbar-row,
       body.mobile-agenda-closed .toolbar.sticky .legend,
-      body.mobile-agenda-closed .toolbar.sticky .backup { display:none; }
+      body.mobile-agenda-closed .toolbar.sticky .backup,
+      body.mobile-agenda-closed .toolbar.sticky .share-panel { display:none; }
       body.mobile-agenda-open .toolbar.sticky { position:static; }
       body.mobile-agenda-open .toolbar-summary { margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--slate-200); }
+      .share-panel { grid-template-columns:74px 1fr; padding:12px; }
+      .share-panel img { width:74px; }
       .month { overflow-x:auto; }
       .month-head, .month-grid { min-width:900px; }
       .week { overflow-x:auto; }
@@ -173,6 +183,7 @@
       backupText: "",
       importText: "",
       backupMessage: "",
+      shareMessage: "",
       mobileAgendaOpen: false
     };
 
@@ -359,8 +370,6 @@
       const earlyCount = list.filter(e => colourGroup(e) === "early").length;
       const morningCount = list.filter(e => colourGroup(e) === "morning").length;
       const weekendCount = list.filter(e => colourGroup(e) === "weekend").length;
-      const tests = runSelfTests();
-      const failedTests = tests.filter(t => !t.pass).length;
       return `
         <header class="hero">
           <div class="hero-inner">
@@ -386,7 +395,6 @@
             <label class="searchbox"><span>⌕</span><input type="search" id="search" placeholder="Search team, venue, stage, notes..." value="${escapeHtml(state.query)}"></label>
             <div class="controls">
               ${["agenda","days","week","month"].map(v => `<button class="btn ${state.view===v?'active':''}" onclick="setView('${v}')">${v === "agenda" ? "☰" : v === "days" ? "▦" : v === "week" ? "7" : "□"} ${v[0].toUpperCase()+v.slice(1)}</button>`).join("")}
-              <button class="btn ${failedTests ? '' : ''}" onclick="toggleTests()">Tests: ${failedTests ? failedTests + " fail" : "pass"}</button>
               <select id="colourFilter">
                 <option value="all" ${state.colourFilter==="all" ? "selected" : ""}>All colour groups</option>
                 <option value="mustWatch" ${state.colourFilter==="mustWatch" ? "selected" : ""}>Red: Must watch</option>
@@ -395,8 +403,6 @@
                 <option value="morning" ${state.colourFilter==="morning" ? "selected" : ""}>Yellow: 5:00am–10:00am</option>
                 <option value="other" ${state.colourFilter==="other" ? "selected" : ""}>No colour: other times</option>
               </select>
-              <button class="btn" onclick="exportBackup()">Show backup text</button>
-              <label class="file-label">Import backup<input class="hidden" type="file" accept="application/json" onchange="importBackupFile(this.files && this.files[0])"></label>
               <button class="btn" onclick="resetAll()">Reset all edits</button>
             </div>
           </div>
@@ -407,9 +413,24 @@
             <span><span class="swatch" style="background:var(--green-50);border-color:var(--green-300);"></span>Fri 6:00pm–Sun 11:30pm</span>
             <span><span class="swatch" style="background:white;"></span>Other times</span>
           </div>
-          ${renderBackupPanel()}
-          ${state.showTests ? renderTests(tests) : ""}
+          ${renderSharePanel()}
         </section>`;
+    }
+
+    function renderSharePanel() {
+      const shareUrl = "https://tonigrapci.github.io/fifa2026/";
+      return `<div class="share-panel">
+        <img src="assets/fifa2026-invite.png" alt="World Cup Calendar QR invite">
+        <div class="share-copy">
+          <strong>Share with friends</strong>
+          <span>${shareUrl}</span>
+          <div class="share-actions">
+            <button class="btn green" onclick="shareInvite()">Share</button>
+            <a class="btn" href="assets/fifa2026-invite.png" target="_blank" rel="noopener">Open invite</a>
+          </div>
+          ${state.shareMessage ? `<div class="share-status">${escapeHtml(state.shareMessage)}</div>` : ""}
+        </div>
+      </div>`;
     }
 
     function renderBackupPanel() {
@@ -552,6 +573,35 @@
     function setView(v) { state.view = v; render(); }
     function toggleMobileAgenda() {
       state.mobileAgendaOpen = !state.mobileAgendaOpen;
+      render();
+    }
+    async function shareInvite() {
+      const shareUrl = "https://tonigrapci.github.io/fifa2026/";
+      const title = "FIFA 2026 Schedule App";
+      const text = "Scan this QR code or open the World Cup schedule app.";
+      const imagePath = "assets/fifa2026-invite.png";
+      try {
+        const response = await fetch(imagePath);
+        const blob = await response.blob();
+        const file = new File([blob], "fifa2026-invite.png", { type: "image/png" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ title, text, url: shareUrl, files: [file] });
+          state.shareMessage = "Share sheet opened.";
+        } else if (navigator.share) {
+          await navigator.share({ title, text, url: shareUrl });
+          state.shareMessage = "Share sheet opened.";
+        } else {
+          await navigator.clipboard.writeText(shareUrl);
+          state.shareMessage = "Link copied. Open invite for the QR image.";
+        }
+      } catch (err) {
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          state.shareMessage = "Link copied. Open invite for the QR image.";
+        } catch {
+          state.shareMessage = "Sharing is blocked here. Open invite and send the image manually.";
+        }
+      }
       render();
     }
     function toggleTests() { state.showTests = !state.showTests; render(); }
