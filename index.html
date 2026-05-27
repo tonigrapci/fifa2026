@@ -41,27 +41,33 @@
     .stat .lab { font-size:12px; color:var(--slate-300); }
     .toolbar { background:white; border:1px solid var(--slate-200); border-radius:28px; padding:16px; box-shadow:0 1px 6px rgba(15,23,42,.05); }
     .toolbar.sticky { position:sticky; top:12px; z-index:30; }
-    .toolbar-summary { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--slate-200); }
+    .toolbar-summary { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; margin-top:12px; padding-top:12px; border-top:1px solid var(--slate-200); }
     .toolbar-summary-main { min-width:0; display:flex; align-items:center; gap:8px; }
     .toolbar-row { display:flex; flex-direction:column; gap:12px; }
+    .search-label { display:block; margin-bottom:6px; color:var(--slate-700); font-size:13px; font-weight:900; }
     .searchbox { position:relative; width:100%; }
-    .searchbox span { position:absolute; left:12px; top:9px; color:var(--slate-400); }
+    .searchbox span { position:absolute; left:14px; bottom:13px; color:var(--blue-600); font-size:18px; }
     input[type="search"], input[type="text"], input[type="date"], input[type="time"], textarea, select {
       width:100%; border:1px solid var(--slate-200); border-radius:14px; padding:10px 12px; outline:none; background:white;
     }
-    input[type="search"] { padding-left:40px; }
+    input[type="search"] { padding:14px 14px 14px 44px; border:2px solid var(--slate-900); border-radius:18px; font-size:16px; font-weight:700; box-shadow:0 8px 20px rgba(15,23,42,.08); }
+    input[type="search"]:focus { border-color:var(--blue-600); box-shadow:0 0 0 4px rgba(37,99,235,.12), 0 8px 20px rgba(15,23,42,.08); }
     .controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    .view-toggle { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; padding:4px; background:var(--slate-100); border:1px solid var(--slate-200); border-radius:18px; }
+    .view-toggle .btn { justify-content:center; border-color:transparent; border-radius:14px; padding:9px 8px; background:transparent; }
+    .view-toggle .btn.active { background:var(--slate-950); color:white; box-shadow:0 2px 8px rgba(15,23,42,.16); }
     .btn, .file-label { border:1px solid var(--slate-200); background:white; color:var(--slate-900); border-radius:16px; padding:9px 14px; font-weight:700; display:inline-flex; align-items:center; gap:8px; text-decoration:none; }
     .icon-btn { width:34px; height:34px; padding:0; justify-content:center; border-radius:999px; color:var(--slate-500); }
     .icon-btn:hover { color:var(--slate-950); border-color:var(--slate-300); }
     .btn.active { background:var(--slate-950); color:white; }
     .btn.primary { background:var(--slate-950); color:white; border-color:var(--slate-950); }
     .btn.green { background:var(--emerald-600); color:white; border-color:var(--emerald-600); }
-    .legend { margin-top:14px; display:flex; flex-wrap:wrap; gap:12px; color:var(--slate-600); font-size:14px; }
+    .detail-panel { margin-top:12px; }
+    .legend { display:flex; flex-wrap:wrap; gap:12px; color:var(--slate-600); font-size:14px; }
     .swatch { display:inline-block; width:16px; height:16px; border-radius:4px; vertical-align:middle; margin-right:4px; border:1px solid var(--slate-200); }
     .backup { margin-top:14px; background:var(--slate-50); border:1px solid var(--slate-200); border-radius:18px; padding:14px; font-size:14px; }
     .backup textarea { width:100%; min-height:140px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; }
-    .share-panel { margin-top:14px; background:var(--slate-50); color:var(--slate-900); border:1px solid var(--slate-200); border-radius:18px; padding:12px; display:grid; grid-template-columns:64px 1fr; gap:10px; align-items:center; }
+    .share-panel { margin-top:12px; background:var(--slate-50); color:var(--slate-900); border:1px solid var(--slate-200); border-radius:18px; padding:12px; display:grid; grid-template-columns:64px 1fr; gap:10px; align-items:center; }
     .share-panel img { width:64px; border-radius:12px; border:1px solid var(--slate-200); background:white; }
     .share-copy { min-width:0; }
     .share-copy strong { display:block; font-size:14px; }
@@ -142,8 +148,7 @@
       .page { padding:32px; }
       .hero-inner { flex-direction:row; align-items:flex-end; justify-content:space-between; }
       .stats { grid-template-columns:repeat(4,1fr); min-width:420px; }
-      .toolbar-row { flex-direction:row; align-items:center; justify-content:space-between; }
-      .searchbox { max-width:420px; }
+      .searchbox { max-width:100%; }
       .grid2 { grid-template-columns:repeat(2,1fr); }
       .day-grid { grid-template-columns:repeat(2,1fr); }
       .event-row-inner { flex-direction:row; align-items:center; }
@@ -157,22 +162,24 @@
       .page { padding:12px; }
       .wrap { gap:14px; }
       .hero { border-radius:22px; padding:18px; }
-      .toolbar.sticky { top:8px; border-radius:20px; padding:10px; }
-      .toolbar-summary { gap:10px; margin-bottom:0; padding-bottom:0; border-bottom:0; }
+      .toolbar.sticky { top:0; border-radius:0 0 20px 20px; padding:10px; margin-left:-12px; margin-right:-12px; border-left:0; border-right:0; }
+      .toolbar-summary { gap:10px; margin-top:10px; padding-top:10px; }
       .toolbar-summary-text { min-width:0; color:var(--slate-600); font-size:13px; font-weight:800; line-height:1.25; }
       .toolbar-summary .btn { flex:0 0 auto; padding:8px 10px; border-radius:14px; }
       .controls { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:stretch; }
       .controls .btn, .controls .file-label, .controls select { width:100%; min-width:0; justify-content:center; }
+      .view-toggle { grid-template-columns:repeat(2,minmax(0,1fr)); }
       .legend { font-size:12px; gap:8px; }
       body.mobile-agenda-closed .hero,
       body.mobile-agenda-open .hero { display:none; }
-      body.mobile-agenda-closed .toolbar.sticky { padding:8px 10px; border-radius:18px; }
-      body.mobile-agenda-closed .toolbar.sticky .toolbar-row,
-      body.mobile-agenda-closed .toolbar.sticky .legend,
-      body.mobile-agenda-closed .toolbar.sticky .backup,
-      body.mobile-agenda-closed .toolbar.sticky .share-panel { display:none; }
-      body.mobile-agenda-open .toolbar.sticky { position:static; }
-      body.mobile-agenda-open .toolbar-summary { margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--slate-200); }
+      body.mobile-agenda-closed .page,
+      body.mobile-agenda-open .page { height:100dvh; overflow:hidden; padding-top:0; }
+      body.mobile-agenda-closed .wrap,
+      body.mobile-agenda-open .wrap { height:100%; gap:10px; }
+      body.mobile-agenda-closed .toolbar.sticky,
+      body.mobile-agenda-open .toolbar.sticky { position:relative; flex:0 0 auto; }
+      body.mobile-agenda-closed #results,
+      body.mobile-agenda-open #results { flex:1; min-height:0; overflow:auto; padding:0 0 12px; }
       .share-panel { grid-template-columns:54px 1fr; padding:10px; }
       .share-panel img { width:54px; }
       .modal { align-items:flex-start; overflow:auto; padding:10px; }
@@ -186,12 +193,7 @@
       .week { overflow-x:auto; }
       .week-head, .week-grid { min-width:900px; }
     }
-    body.agenda-filters-closed .toolbar.sticky { padding:10px 14px; border-radius:20px; }
-    body.agenda-filters-closed .toolbar.sticky .toolbar-summary { margin-bottom:0; padding-bottom:0; border-bottom:0; }
-    body.agenda-filters-closed .toolbar.sticky .toolbar-row,
-    body.agenda-filters-closed .toolbar.sticky .legend,
-    body.agenda-filters-closed .toolbar.sticky .backup,
-    body.agenda-filters-closed .toolbar.sticky .share-panel { display:none; }
+    body.agenda-filters-closed .toolbar.sticky .detail-panel { display:none; }
   </style>
 </head>
 <body>
@@ -212,7 +214,7 @@
       importText: "",
       backupMessage: "",
       shareMessage: "",
-      mobileAgendaOpen: !window.matchMedia("(max-width: 700px)").matches
+      mobileAgendaOpen: false
     };
 
     function escapeHtml(value) {
@@ -434,27 +436,34 @@
           </div>
         </header>
         <section class="toolbar ${state.view === "agenda" ? "sticky" : ""}">
+          <div class="toolbar-row">
+            <label class="searchbox"><span>⌕</span><strong class="search-label">Search matches</strong><input type="search" id="search" placeholder="Team, venue, stage, notes..." value="${escapeHtml(state.query)}"></label>
+            <div class="controls view-toggle" aria-label="View mode">
+              ${[
+                ["agenda", "☰", "List View"],
+                ["days", "▦", "Days"],
+                ["week", "7", "Week"],
+                ["month", "□", "Month"]
+              ].map(([v, icon, label]) => `<button class="btn ${state.view===v?'active':''}" onclick="setView('${v}')">${icon} ${label}</button>`).join("")}
+            </div>
+          </div>
           <div class="toolbar-summary">
             <div class="toolbar-summary-main">
-              <div class="toolbar-summary-text"><strong>Agenda</strong><br><span id="summaryCount">${list.length}</span> matches shown</div>
+              <div class="toolbar-summary-text"><strong>${state.view === "agenda" ? "List View" : state.view[0].toUpperCase() + state.view.slice(1)}</strong><br><span id="summaryCount">${list.length}</span> matches shown</div>
               <button class="btn icon-btn" onclick="resetAll()" title="Reset all edits" aria-label="Reset all edits">↺</button>
             </div>
-            <button class="btn active" onclick="toggleMobileAgenda()">${state.mobileAgendaOpen ? "Hide" : "Show"} filters</button>
+            <button class="btn" onclick="toggleMobileAgenda()">${state.mobileAgendaOpen ? "Less details" : "More details"}</button>
           </div>
-          <div class="toolbar-row">
-            <label class="searchbox"><span>⌕</span><input type="search" id="search" placeholder="Search team, venue, stage, notes..." value="${escapeHtml(state.query)}"></label>
-            <div class="controls">
-              ${["agenda","days","week","month"].map(v => `<button class="btn ${state.view===v?'active':''}" onclick="setView('${v}')">${v === "agenda" ? "☰" : v === "days" ? "▦" : v === "week" ? "7" : "□"} ${v[0].toUpperCase()+v.slice(1)}</button>`).join("")}
+          <div class="detail-panel">
+            <div class="legend">
+              <span><span class="swatch" style="background:var(--red-50);border-color:var(--red-400);"></span>Must watch override</span>
+              <span><span class="swatch" style="background:var(--blue-50);border-color:var(--blue-300);"></span>12:00am–4:55am</span>
+              <span><span class="swatch" style="background:var(--yellow-50);border-color:var(--yellow-300);"></span>5:00am–10:00am</span>
+              <span><span class="swatch" style="background:var(--green-50);border-color:var(--green-300);"></span>Fri 6:00pm–Sun 11:30pm</span>
+              <span><span class="swatch" style="background:white;"></span>Other times</span>
             </div>
+            ${renderSharePanel()}
           </div>
-          <div class="legend">
-            <span><span class="swatch" style="background:var(--red-50);border-color:var(--red-400);"></span>Must watch override</span>
-            <span><span class="swatch" style="background:var(--blue-50);border-color:var(--blue-300);"></span>12:00am–4:55am</span>
-            <span><span class="swatch" style="background:var(--yellow-50);border-color:var(--yellow-300);"></span>5:00am–10:00am</span>
-            <span><span class="swatch" style="background:var(--green-50);border-color:var(--green-300);"></span>Fri 6:00pm–Sun 11:30pm</span>
-            <span><span class="swatch" style="background:white;"></span>Other times</span>
-          </div>
-          ${renderSharePanel()}
         </section>`;
     }
 
