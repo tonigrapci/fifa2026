@@ -426,17 +426,17 @@
               <h1>World Cup Calendar</h1>
             </div>
             <div class="stats">
-              <div class="stat"><div class="num">${list.length}</div><div class="lab">shown</div></div>
-              <div class="stat"><div class="num">${earlyCount}</div><div class="lab">12–4:55am</div></div>
-              <div class="stat"><div class="num">${morningCount}</div><div class="lab">5–10am</div></div>
-              <div class="stat"><div class="num">${weekendCount}</div><div class="lab">Fri night–Sun</div></div>
+              <div class="stat"><div class="num" id="shownCount">${list.length}</div><div class="lab">shown</div></div>
+              <div class="stat"><div class="num" id="earlyCount">${earlyCount}</div><div class="lab">12–4:55am</div></div>
+              <div class="stat"><div class="num" id="morningCount">${morningCount}</div><div class="lab">5–10am</div></div>
+              <div class="stat"><div class="num" id="weekendCount">${weekendCount}</div><div class="lab">Fri night–Sun</div></div>
             </div>
           </div>
         </header>
         <section class="toolbar ${state.view === "agenda" ? "sticky" : ""}">
           <div class="toolbar-summary">
             <div class="toolbar-summary-main">
-              <div class="toolbar-summary-text"><strong>Agenda</strong><br>${list.length} matches shown</div>
+              <div class="toolbar-summary-text"><strong>Agenda</strong><br><span id="summaryCount">${list.length}</span> matches shown</div>
               <button class="btn icon-btn" onclick="resetAll()" title="Reset all edits" aria-label="Reset all edits">↺</button>
             </div>
             <button class="btn active" onclick="toggleMobileAgenda()">${state.mobileAgendaOpen ? "Hide" : "Show"} filters</button>
@@ -569,15 +569,41 @@
       </div>`;
     }
 
-    function render() {
-      const list = filteredEvents();
+    function renderMain(list) {
       let main = "";
       if (state.view === "agenda") main = renderAgenda(list);
       if (state.view === "days") main = renderDays(list);
       if (state.view === "week") main = renderCalendarNav() + renderWeek(list);
       if (state.view === "month") main = renderCalendarNav() + renderMonth(list);
+      return main;
+    }
+
+    function updateToolbarCounts(list) {
+      const counts = {
+        shownCount: list.length,
+        summaryCount: list.length,
+        earlyCount: list.filter(e => colourGroup(e) === "early").length,
+        morningCount: list.filter(e => colourGroup(e) === "morning").length,
+        weekendCount: list.filter(e => colourGroup(e) === "weekend").length
+      };
+      Object.entries(counts).forEach(([id, value]) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+      });
+    }
+
+    function refreshFilteredView() {
+      const list = filteredEvents();
+      const results = document.getElementById("results");
+      if (results) results.innerHTML = renderMain(list);
+      updateToolbarCounts(list);
+      updateMobileAgendaPanel();
+    }
+
+    function render() {
+      const list = filteredEvents();
       const selected = state.selectedId ? events().find(e => e.id === state.selectedId) : null;
-      document.getElementById("app").innerHTML = `<div class="page"><div class="wrap">${renderToolbar(list)}${main}</div>${renderEditor(selected)}</div>`;
+      document.getElementById("app").innerHTML = `<div class="page"><div class="wrap">${renderToolbar(list)}<main id="results">${renderMain(list)}</main></div>${renderEditor(selected)}</div>`;
       bindInputs();
       updateMobileAgendaPanel();
     }
@@ -604,7 +630,7 @@
 
     function bindInputs() {
       const search = document.getElementById("search");
-      if (search) search.addEventListener("input", e => { state.query = e.target.value; render(); });
+      if (search) search.addEventListener("input", e => { state.query = e.target.value; refreshFilteredView(); });
       const importText = document.getElementById("importText");
       if (importText) importText.addEventListener("input", e => { state.importText = e.target.value; });
     }
