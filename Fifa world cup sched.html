@@ -31,16 +31,15 @@
     .page { min-height:100vh; padding:16px; }
     .wrap { max-width:1280px; margin:0 auto; display:flex; flex-direction:column; gap:20px; }
     .hero { background:var(--slate-950); color:white; border-radius:22px; padding:16px 18px; box-shadow:0 1px 8px rgba(15,23,42,.08); }
-    .hero-inner { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .hero-inner { display:flex; align-items:center; justify-content:center; gap:12px; text-align:center; }
     h1 { margin:0; font-size: clamp(1.45rem, 4vw, 2.2rem); line-height:1; }
     .toolbar { background:white; border:1px solid var(--slate-200); border-radius:28px; padding:16px; box-shadow:0 1px 6px rgba(15,23,42,.05); }
     .toolbar.sticky { position:sticky; top:12px; z-index:30; }
     .toolbar-summary { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; margin-top:12px; padding-top:12px; border-top:1px solid var(--slate-200); }
     .toolbar-summary-main { min-width:0; display:flex; align-items:center; gap:8px; }
     .toolbar-row { display:flex; flex-direction:column; gap:12px; }
-    .search-label { display:block; margin-bottom:6px; color:var(--slate-700); font-size:13px; font-weight:900; }
     .searchbox { position:relative; width:100%; }
-    .searchbox span { position:absolute; left:14px; bottom:13px; color:var(--blue-600); font-size:18px; }
+    .searchbox span { position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--blue-600); font-size:25px; }
     input[type="search"], input[type="text"], input[type="date"], input[type="time"], textarea, select {
       width:100%; border:1px solid var(--slate-200); border-radius:14px; padding:10px 12px; outline:none; background:white;
     }
@@ -60,7 +59,17 @@
     .settings-grid { display:grid; grid-template-columns:1fr; gap:12px; margin-bottom:12px; }
     .setting-card { background:white; border:1px solid var(--slate-200); border-radius:16px; padding:12px; }
     .setting-card label { display:block; }
-    .setting-note { color:var(--slate-600); font-size:12px; margin-top:6px; line-height:1.35; }
+    .timezone-button { width:100%; border:0; background:white; padding:0; display:flex; justify-content:space-between; align-items:center; gap:12px; text-align:left; }
+    .timezone-button span { color:var(--slate-600); font-size:13px; font-weight:900; }
+    .timezone-button strong { font-size:18px; }
+    .timezone-picker { margin-top:12px; border-top:1px solid var(--slate-200); padding-top:12px; }
+    .timezone-search { width:100%; border:1px solid var(--slate-200); border-radius:14px; padding:10px 12px; outline:none; background:white; font-weight:700; }
+    .timezone-list { margin-top:10px; max-height:260px; overflow:auto; display:flex; flex-direction:column; gap:6px; }
+    .timezone-option { width:100%; border:1px solid var(--slate-200); background:white; border-radius:12px; padding:10px 12px; display:flex; flex-direction:column; gap:2px; text-align:left; }
+    .timezone-option strong { font-size:14px; }
+    .timezone-option span { color:var(--slate-500); font-size:12px; }
+    .timezone-option.active { border-color:var(--slate-950); background:var(--slate-950); color:white; }
+    .timezone-option.active span { color:var(--slate-300); }
     .legend { display:flex; flex-wrap:wrap; gap:12px; color:var(--slate-600); font-size:14px; }
     .swatch { display:inline-block; width:16px; height:16px; border-radius:4px; vertical-align:middle; margin-right:4px; border:1px solid var(--slate-200); }
     .backup { margin-top:14px; background:var(--slate-50); border:1px solid var(--slate-200); border-radius:18px; padding:14px; font-size:14px; }
@@ -159,7 +168,8 @@
       .page { padding:12px; }
       .wrap { gap:14px; }
       .hero { border-radius:18px; padding:14px 16px; }
-      .toolbar.sticky { top:0; border-radius:0 0 20px 20px; padding:10px; margin-left:-12px; margin-right:-12px; border-left:0; border-right:0; }
+      .toolbar { border-radius:0 0 20px 20px; padding:10px; margin-left:-12px; margin-right:-12px; border-left:0; border-right:0; }
+      .toolbar.sticky { top:0; }
       body.list-scrolled .toolbar.sticky .view-toggle,
       body.list-scrolled .toolbar.sticky .toolbar-summary,
       body.list-scrolled .toolbar.sticky .detail-panel { display:none; }
@@ -214,6 +224,7 @@
       backupMessage: "",
       shareMessage: "",
       timeZone: safeLoadPrefs().timeZone || SOURCE_TIME_ZONE,
+      timeZonePickerOpen: false,
       mobileAgendaOpen: false
     };
 
@@ -265,9 +276,8 @@
       return (TIME_ZONES.find(([, zone]) => zone === state.timeZone) || TIME_ZONES[0])[0];
     }
 
-    function timeZoneInputValue() {
-      const match = TIME_ZONES.find(([, zone]) => zone === state.timeZone);
-      return match ? `${match[0]} - ${match[1]}` : state.timeZone;
+    function timeZoneDisplayName() {
+      return timeZoneCity().replace(/\s+\(.+\)$/, "");
     }
 
     function resolveTimeZone(value) {
@@ -280,6 +290,21 @@
       } catch {
         return null;
       }
+    }
+
+    function renderTimeZonePicker() {
+      return `<div class="setting-card">
+        <button class="timezone-button" onclick="toggleTimeZonePicker()" aria-expanded="${state.timeZonePickerOpen ? "true" : "false"}">
+          <span>Time zone</span>
+          <strong>${escapeHtml(timeZoneDisplayName())}</strong>
+        </button>
+        ${state.timeZonePickerOpen ? `<div class="timezone-picker">
+          <input id="timeZoneSearch" class="timezone-search" type="text" placeholder="Search city..." oninput="filterTimeZones(this.value)">
+          <div class="timezone-list">
+            ${TIME_ZONES.map(([label, zone]) => `<button class="timezone-option ${state.timeZone === zone ? "active" : ""}" data-search="${escapeHtml(`${label} ${zone}`.toLowerCase())}" onclick="selectTimeZone('${escapeHtml(zone)}')"><strong>${escapeHtml(label.replace(/\s+\(.+\)$/, ""))}</strong><span>${escapeHtml(zone)}</span></button>`).join("")}
+          </div>
+        </div>` : ""}
+      </div>`;
     }
 
     function minutes(t) {
@@ -497,7 +522,6 @@
     }
 
     function renderToolbar(list) {
-      const city = timeZoneCity();
       return `
         <header class="hero">
           <div class="hero-inner">
@@ -506,7 +530,7 @@
         </header>
         <section class="toolbar ${state.view === "agenda" ? "sticky" : ""}">
           <div class="toolbar-row">
-            <label class="searchbox"><span>⌕</span><strong class="search-label">Search matches</strong><input type="search" id="search" placeholder="Team, venue, stage, notes..." value="${escapeHtml(state.query)}"></label>
+            <label class="searchbox"><span>⌕</span><input type="search" id="search" placeholder="Search team, venue, stage, notes..." value="${escapeHtml(state.query)}"></label>
             <div class="controls view-toggle" aria-label="View mode">
               ${[
                 ["agenda", "☰", "List View"],
@@ -518,22 +542,14 @@
           </div>
           <div class="toolbar-summary">
             <div class="toolbar-summary-main">
-              <div class="toolbar-summary-text"><strong>${escapeHtml(city)} time</strong><br>${state.view === "agenda" ? "List View" : state.view[0].toUpperCase() + state.view.slice(1)}</div>
+              <div class="toolbar-summary-text"><strong>${escapeHtml(timeZoneDisplayName())} time</strong><br>${state.view === "agenda" ? "List View" : state.view[0].toUpperCase() + state.view.slice(1)}</div>
               <button class="btn icon-btn" onclick="resetAll()" title="Reset all edits" aria-label="Reset all edits">↺</button>
             </div>
             <button class="btn" onclick="toggleMobileAgenda()">${state.mobileAgendaOpen ? "Less details" : "More details"}</button>
           </div>
           <div class="detail-panel">
             <div class="settings-grid">
-              <div class="setting-card">
-                <label>Time zone
-                  <input id="timeZoneInput" type="text" list="timeZoneOptions" value="${escapeHtml(timeZoneInputValue())}" placeholder="Search a city or timezone...">
-                  <datalist id="timeZoneOptions">
-                    ${TIME_ZONES.map(([label, zone]) => `<option value="${escapeHtml(`${label} - ${zone}`)}"></option>`).join("")}
-                  </datalist>
-                </label>
-                <div class="setting-note">Search by city, or paste an IANA timezone like America/New_York. Saved on this device.</div>
-              </div>
+              ${renderTimeZonePicker()}
               ${renderSharePanel()}
             </div>
           </div>
@@ -712,16 +728,26 @@
     function bindInputs() {
       const search = document.getElementById("search");
       if (search) search.addEventListener("input", e => { state.query = e.target.value; refreshFilteredView(); });
-      const timeZoneInput = document.getElementById("timeZoneInput");
-      if (timeZoneInput) {
-        timeZoneInput.addEventListener("change", e => setTimeZone(e.target.value));
-        timeZoneInput.addEventListener("blur", e => setTimeZone(e.target.value, true));
-      }
       const importText = document.getElementById("importText");
       if (importText) importText.addEventListener("input", e => { state.importText = e.target.value; });
     }
 
     function setView(v) { state.view = v; render(); }
+    function toggleTimeZonePicker() {
+      state.timeZonePickerOpen = !state.timeZonePickerOpen;
+      render();
+      if (state.timeZonePickerOpen) setTimeout(() => document.getElementById("timeZoneSearch")?.focus(), 0);
+    }
+    function filterTimeZones(value) {
+      const q = String(value || "").trim().toLowerCase();
+      document.querySelectorAll(".timezone-option").forEach(option => {
+        option.style.display = !q || option.dataset.search.includes(q) ? "flex" : "none";
+      });
+    }
+    function selectTimeZone(zone) {
+      state.timeZonePickerOpen = false;
+      setTimeZone(zone);
+    }
     function setTimeZone(value, allowNoop=false) {
       const zone = resolveTimeZone(value);
       if (!zone) {
@@ -730,6 +756,7 @@
         return;
       }
       state.timeZone = zone;
+      state.timeZonePickerOpen = false;
       persistPrefs();
       render();
     }
