@@ -749,12 +749,19 @@
 
     function updateScrollState() {
       const isMobileList = state.view === "agenda" && window.matchMedia("(max-width: 700px)").matches;
-      document.body.classList.toggle("list-scrolled", isMobileList && window.scrollY > 30);
+      const focusedInDetails = document.activeElement && Boolean(document.activeElement.closest(".detail-panel"));
+      const keepDetailsOpen = state.mobileAgendaOpen || state.timeZonePickerOpen || focusedInDetails;
+      document.body.classList.toggle("list-scrolled", isMobileList && !keepDetailsOpen && window.scrollY > 30);
     }
 
     function bindInputs() {
       const search = document.getElementById("search");
       if (search) search.addEventListener("input", e => { state.query = e.target.value; refreshFilteredView(); });
+      const timeZoneSearch = document.getElementById("timeZoneSearch");
+      if (timeZoneSearch) {
+        timeZoneSearch.addEventListener("focus", updateScrollState);
+        timeZoneSearch.addEventListener("blur", () => requestAnimationFrame(updateScrollState));
+      }
       const importText = document.getElementById("importText");
       if (importText) importText.addEventListener("input", e => { state.importText = e.target.value; });
     }
