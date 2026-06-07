@@ -97,6 +97,7 @@
     .badge.skip { background:var(--slate-200); color:var(--slate-700); border:1px solid var(--slate-300); }
     .event-title { margin:8px 0 4px; font-size:20px; font-weight:900; }
     .flag-title { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+    .team-name { display:inline-flex; align-items:center; gap:5px; min-width:0; }
     .team-flag { font-size:22px; line-height:1; filter:saturate(.95); }
     .flag-vs { color:var(--slate-500); font-size:14px; font-weight:900; text-transform:uppercase; }
     .meta { color:var(--slate-600); font-size:14px; }
@@ -137,14 +138,22 @@
     .modal-head { background:var(--slate-950); color:white; padding:20px; }
     .modal-head .small { color:var(--emerald-300); letter-spacing:.2em; text-transform:uppercase; font-size:12px; font-weight:800; }
     .modal-head h2 { margin:4px 0 0; }
-    .match-summary { background:var(--slate-50); border:1px solid var(--slate-200); border-radius:16px; padding:12px; color:var(--slate-700); }
-    .match-summary strong { display:block; color:var(--slate-950); font-size:16px; }
-    .match-summary span { display:block; margin-top:3px; font-size:13px; }
+    .match-summary { background:var(--slate-50); border:1px solid var(--slate-200); border-radius:18px; padding:14px; color:var(--slate-700); display:grid; grid-template-columns:minmax(0,1fr) minmax(220px,.9fr); gap:14px; align-items:center; }
+    .match-teams { min-width:0; }
+    .match-teams strong { display:block; color:var(--slate-950); font-size:16px; }
+    .match-teams .flag-title { margin-top:6px; }
+    .match-facts { display:grid; gap:7px; }
+    .match-fact { display:grid; grid-template-columns:56px minmax(0,1fr); gap:10px; align-items:baseline; text-align:right; }
+    .match-fact span { color:var(--slate-500); font-size:11px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+    .match-fact strong { min-width:0; color:var(--slate-950); font-size:13px; line-height:1.25; overflow-wrap:anywhere; }
     .form { display:grid; grid-template-columns:1fr 1fr; gap:14px; padding:20px; }
     .span2 { grid-column: span 2; }
     label { font-size:14px; font-weight:800; }
     label > input, label > textarea, label > select { margin-top:6px; font-weight:400; }
+    .notes-editor textarea { min-height:96px; resize:vertical; }
+    .quick-toggles { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .checkrow { display:flex; align-items:center; gap:8px; }
+    .toggle-card { border:1px solid var(--slate-200); border-radius:16px; padding:12px; background:var(--slate-50); }
     .modal-actions { background:var(--slate-50); padding:18px; display:flex; flex-direction:column-reverse; gap:8px; justify-content:space-between; }
     .right-actions { display:flex; gap:8px; justify-content:flex-end; }
     .empty { border:1px dashed var(--slate-300); border-radius:12px; color:var(--slate-400); padding:12px; font-size:12px; }
@@ -193,8 +202,9 @@
       .modal-head { padding:14px 16px; }
       .modal-head h2 { font-size:20px; line-height:1.1; }
       .form { gap:10px; padding:14px; }
-      .match-summary { padding:10px; }
-      .match-summary span { line-height:1.35; }
+      .match-summary { padding:12px; grid-template-columns:1fr; gap:12px; }
+      .match-fact { grid-template-columns:48px minmax(0,1fr); text-align:left; }
+      .notes-editor textarea { min-height:82px; }
       .modal-actions { padding:12px; }
       .right-actions { display:grid; grid-template-columns:1fr 1fr; }
       .modal-actions > .btn { width:100%; justify-content:center; }
@@ -214,6 +224,8 @@
       .share-actions .btn { justify-content:center; padding-left:10px; padding-right:10px; }
       .timezone-list { max-height:42dvh; }
       label { font-size:13px; }
+      .quick-toggles { gap:8px; }
+      .toggle-card { padding:10px; border-radius:14px; }
     }
     @media (hover: none) {
       .event-row:hover, .event-card:hover, .mini:hover { transform:none; box-shadow:0 1px 5px rgba(15,23,42,.05); }
@@ -481,7 +493,7 @@
     function teamFlag(team) { return TEAM_FLAGS[team] || ""; }
     function teamWithFlag(team) {
       const flag = teamFlag(team);
-      return `${flag ? `<span class="team-flag" aria-hidden="true">${flag}</span>` : ""}<span>${escapeHtml(team)}</span>`;
+      return `<span class="team-name">${flag ? `<span class="team-flag" aria-hidden="true">${flag}</span>` : ""}<span>${escapeHtml(team)}</span></span>`;
     }
     function matchTitle(e) { return `${e.home} vs ${e.away}`; }
     function matchTitleHtml(e) {
@@ -499,7 +511,7 @@
               ${e.watched ? '<span class="badge watched">Watched</span>' : ''}
             </div>
             <div class="event-title">${matchTitleHtml(e)}</div>
-            <div class="meta">${escapeHtml(dateLabel(e))} · ${escapeHtml(timeLabel(e))} · ${escapeHtml(e.venue)}</div>
+            <div class="meta">${escapeHtml(dateLabel(e))} · ${escapeHtml(e.venue)}</div>
             ${e.notes ? `<div class="notes">📝 ${escapeHtml(e.notes)}</div>` : ''}
           </div>
           <div class="big-time">${escapeHtml(timeLabel(e))}</div>
@@ -675,15 +687,21 @@
           <div class="modal-head"><div class="small">Match #${e.id}</div><h2>${escapeHtml(matchTitle(e))}</h2></div>
           <div class="form">
             <div class="match-summary span2">
-              <strong>${escapeHtml(e.stage)}</strong>
-              <span>${teamWithFlag(e.home)} <span class="flag-vs">vs</span> ${teamWithFlag(e.away)}</span>
+              <div class="match-teams">
+                <strong>${escapeHtml(e.stage)}</strong>
+                <div class="flag-title">${teamWithFlag(e.home)}<span class="flag-vs">vs</span>${teamWithFlag(e.away)}</div>
+              </div>
+              <div class="match-facts">
+                <div class="match-fact"><span>Date</span><strong>${escapeHtml(dateLabel(e))}</strong></div>
+                <div class="match-fact"><span>Time</span><strong>${escapeHtml(timeLabel(e))}</strong></div>
+                <div class="match-fact"><span>Venue</span><strong>${escapeHtml(e.venue || "Venue TBC")}</strong></div>
+              </div>
             </div>
-            <label>Source date (Sydney)<input id="editDate" type="date" value="${escapeHtml(e.date || "")}"></label>
-            <label>Source time (Sydney)<input id="editTime" type="time" value="${escapeHtml(e.time || "")}"></label>
-            <label class="span2">Venue<input id="editVenue" type="text" value="${escapeHtml(e.venue || "")}"></label>
-            <label class="span2">Notes<textarea id="editNotes" placeholder="Leave notes here...">${escapeHtml(e.notes || "")}</textarea></label>
-            <label class="checkrow"><input id="editMustWatch" type="checkbox" ${e.mustWatch ? "checked" : ""}> Must watch</label>
-            <label class="checkrow"><input id="editWatched" type="checkbox" ${e.watched ? "checked" : ""}> Watched</label>
+            <label class="span2 notes-editor">Notes<textarea id="editNotes" placeholder="Leave notes here...">${escapeHtml(e.notes || "")}</textarea></label>
+            <div class="span2 quick-toggles">
+              <label class="checkrow toggle-card"><input id="editMustWatch" type="checkbox" ${e.mustWatch ? "checked" : ""}> Must watch</label>
+              <label class="checkrow toggle-card"><input id="editWatched" type="checkbox" ${e.watched ? "checked" : ""}> Watched</label>
+            </div>
           </div>
           <div class="modal-actions">
             <button class="btn" onclick="resetEvent(${e.id})">↺ Reset</button>
@@ -841,9 +859,9 @@
     function saveEditor(id) {
       const original = events().find(e => e.id === id);
       state.edits[id] = {
-        date: document.getElementById("editDate").value,
-        time: document.getElementById("editTime").value,
-        venue: document.getElementById("editVenue").value,
+        date: original.date,
+        time: original.time,
+        venue: original.venue,
         notes: document.getElementById("editNotes").value || "",
         mustWatch: document.getElementById("editMustWatch").checked,
         watched: document.getElementById("editWatched").checked
