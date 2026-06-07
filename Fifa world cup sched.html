@@ -91,7 +91,6 @@
     .badge.dark { background:var(--slate-950); color:white; }
     .badge.light { background:var(--slate-100); color:var(--slate-700); }
     .badge.must { background:var(--red-100); color:var(--red-700); border:1px solid var(--red-200); }
-    .badge.watched { background:var(--purple-100); color:var(--purple-700); }
     .badge.live { background:var(--red-100); color:var(--red-700); border:1px solid var(--red-200); }
     .badge.replay { background:var(--blue-50); color:var(--blue-600); border:1px solid var(--blue-300); }
     .badge.skip { background:var(--slate-200); color:var(--slate-700); border:1px solid var(--slate-300); }
@@ -128,10 +127,11 @@
     .mini-top { display:flex; align-items:center; justify-content:space-between; gap:4px; }
     .mini-time { font-size:11px; font-weight:900; white-space:nowrap; }
     .mini-title { font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .status-dot { display:inline-block; width:8px; height:8px; border-radius:999px; }
+    .status-dot { display:inline-block; width:10px; height:10px; border-radius:999px; flex:0 0 auto; box-shadow:0 0 0 3px rgba(255,255,255,.8); }
     .status-live { background:var(--red-600); }
     .status-replay { background:var(--blue-600); }
-    .status-skip { background:var(--slate-500); }
+    .status-skip { background:var(--slate-400); }
+    .time-stack { display:flex; align-items:center; justify-content:flex-end; gap:8px; }
     .star { color:var(--red-700); font-size:13px; }
     .modal { position:fixed; inset:0; z-index:80; background:rgba(2,6,23,.65); display:flex; align-items:center; justify-content:center; padding:16px; }
     .modal-card { width:100%; max-width:720px; background:white; border-radius:28px; overflow:hidden; box-shadow:0 30px 80px rgba(2,6,23,.35); }
@@ -154,6 +154,9 @@
     .quick-toggles { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .checkrow { display:flex; align-items:center; gap:8px; }
     .toggle-card { border:1px solid var(--slate-200); border-radius:16px; padding:12px; background:var(--slate-50); }
+    .status-card { border:1px solid var(--slate-200); border-radius:16px; padding:10px 12px; background:var(--slate-50); }
+    .status-card span { display:block; color:var(--slate-600); font-size:12px; font-weight:900; margin-bottom:6px; }
+    .status-card select { margin:0; border-color:var(--slate-300); font-weight:800; }
     .modal-actions { background:var(--slate-50); padding:18px; display:flex; flex-direction:column-reverse; gap:8px; justify-content:space-between; }
     .right-actions { display:flex; gap:8px; justify-content:flex-end; }
     .empty { border:1px dashed var(--slate-300); border-radius:12px; color:var(--slate-400); padding:12px; font-size:12px; }
@@ -217,6 +220,7 @@
       .event-row, .event-card { border-radius:20px; padding:14px; }
       .event-title { font-size:18px; line-height:1.15; }
       .big-time { font-size:22px; text-align:left; }
+      .time-stack { justify-content:flex-start; }
       .team-flag { font-size:20px; }
       .badge { font-size:11px; }
       .meta { font-size:13px; line-height:1.35; }
@@ -226,6 +230,7 @@
       label { font-size:13px; }
       .quick-toggles { gap:8px; }
       .toggle-card { padding:10px; border-radius:14px; }
+      .status-card { padding:9px 10px; border-radius:14px; }
     }
     @media (hover: none) {
       .event-row:hover, .event-card:hover, .mini:hover { transform:none; box-shadow:0 1px 5px rgba(15,23,42,.05); }
@@ -472,9 +477,14 @@
       return `<span class="badge ${status}"><span>${icons[status] || "•"}</span> ${labels[status] || escapeHtml(status)}</span>`;
     }
 
+    function watchStatus(e) {
+      return e.watchStatus || (e.watched ? "replay" : "skip");
+    }
+
     function statusDot(status) {
-      if (!status) return "";
-      return `<span title="${status}" class="status-dot status-${escapeHtml(status)}"></span>`;
+      if (!status || status === "skip") return "";
+      const labels = { live:"Watch live", replay:"Watch replay" };
+      return `<span title="${labels[status] || status}" aria-label="${labels[status] || status}" class="status-dot status-${escapeHtml(status)}"></span>`;
     }
 
     const TEAM_FLAGS = {
@@ -508,13 +518,12 @@
               <span class="badge dark">#${e.id}</span>
               <span class="badge light">${escapeHtml(e.stage)}</span>
               ${e.mustWatch ? '<span class="badge must"><span style="font-size:16px;line-height:1">★</span> Must watch</span>' : ''}
-              ${e.watched ? '<span class="badge watched">Watched</span>' : ''}
             </div>
             <div class="event-title">${matchTitleHtml(e)}</div>
             <div class="meta">${escapeHtml(dateLabel(e))} · ${escapeHtml(e.venue)}</div>
             ${e.notes ? `<div class="notes">📝 ${escapeHtml(e.notes)}</div>` : ''}
           </div>
-          <div class="big-time">${escapeHtml(timeLabel(e))}</div>
+          <div class="time-stack">${statusDot(watchStatus(e))}<div class="big-time">${escapeHtml(timeLabel(e))}</div></div>
         </div>
       </button>`;
     }
@@ -523,7 +532,7 @@
       return `<button class="event-card ${colourClass(e)}" onclick="openEditor(${e.id})">
         <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
           <div>
-            <div class="badges"><span class="meta" style="font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;">Match #${e.id} · ${escapeHtml(e.stage)}</span></div>
+            <div class="badges"><span class="meta" style="font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;">Match #${e.id} · ${escapeHtml(e.stage)}</span>${statusDot(watchStatus(e))}</div>
             <div class="event-title">${matchTitleHtml(e)}</div>
             <div class="meta">${escapeHtml(dateLabel(e))} · ${escapeHtml(e.venue)}</div>
           </div>
@@ -537,7 +546,7 @@
       return `<button class="mini ${colourClass(e)}" onclick="openEditor(${e.id})">
         <div class="mini-top">
           <span class="mini-time">${escapeHtml(timeLabel(e))}</span>
-          <span style="display:flex;align-items:center;gap:4px;">${e.mustWatch ? '<span class="star">★</span>' : ''}</span>
+          <span style="display:flex;align-items:center;gap:4px;">${statusDot(watchStatus(e))}${e.mustWatch ? '<span class="star">★</span>' : ''}</span>
         </div>
         <div class="mini-title">${escapeHtml(`${teamFlag(e.home)} ${e.home} vs ${teamFlag(e.away)} ${e.away}`.trim())}</div>
       </button>`;
@@ -700,7 +709,11 @@
             <label class="span2 notes-editor">Notes<textarea id="editNotes" placeholder="Leave notes here...">${escapeHtml(e.notes || "")}</textarea></label>
             <div class="span2 quick-toggles">
               <label class="checkrow toggle-card"><input id="editMustWatch" type="checkbox" ${e.mustWatch ? "checked" : ""}> Must watch</label>
-              <label class="checkrow toggle-card"><input id="editWatched" type="checkbox" ${e.watched ? "checked" : ""}> Watched</label>
+              <label class="status-card"><span>Watch status</span><select id="editWatchStatus">
+                <option value="live" ${watchStatus(e) === "live" ? "selected" : ""}>Watch live</option>
+                <option value="replay" ${watchStatus(e) === "replay" ? "selected" : ""}>Watch replay</option>
+                <option value="skip" ${watchStatus(e) === "skip" ? "selected" : ""}>Skip</option>
+              </select></label>
             </div>
           </div>
           <div class="modal-actions">
@@ -864,7 +877,7 @@
         venue: original.venue,
         notes: document.getElementById("editNotes").value || "",
         mustWatch: document.getElementById("editMustWatch").checked,
-        watched: document.getElementById("editWatched").checked
+        watchStatus: document.getElementById("editWatchStatus").value
       };
       state.selectedId = null;
       persist();
