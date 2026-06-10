@@ -74,8 +74,9 @@
     .swatch { display:inline-block; width:16px; height:16px; border-radius:4px; vertical-align:middle; margin-right:4px; border:1px solid var(--slate-200); }
     .backup { margin-top:14px; background:var(--slate-50); border:1px solid var(--slate-200); border-radius:18px; padding:14px; font-size:14px; }
     .backup textarea { width:100%; min-height:140px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; }
-    .share-panel { margin-top:12px; background:var(--slate-50); color:var(--slate-900); border:1px solid var(--slate-200); border-radius:18px; padding:12px; display:grid; grid-template-columns:64px 1fr; gap:10px; align-items:center; }
-    .share-panel img { width:64px; border-radius:12px; border:1px solid var(--slate-200); background:white; }
+    .detail-actions { display:grid; gap:10px; }
+    .simple-share-card, .legacy-import-card { background:white; border:1px solid var(--slate-200); border-radius:16px; padding:12px; }
+    .simple-share-card .btn, .legacy-import-card .btn, .legacy-import-card .file-label { width:100%; justify-content:center; }
     .share-copy { min-width:0; }
     .share-copy strong { display:block; font-size:14px; }
     .share-copy span { display:block; color:var(--slate-600); font-size:12px; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -198,8 +199,7 @@
       .controls .btn, .controls .file-label, .controls select { width:100%; min-width:0; justify-content:center; }
       .view-toggle { grid-template-columns:repeat(2,minmax(0,1fr)); }
       .legend { font-size:12px; gap:8px; }
-      .share-panel { grid-template-columns:54px 1fr; padding:10px; }
-      .share-panel img { width:54px; }
+      .simple-share-card, .legacy-import-card { padding:10px; }
       .modal { align-items:flex-start; overflow:auto; padding:10px; }
       .modal-card { border-radius:20px; max-height:calc(100dvh - 20px); overflow:auto; }
       .modal-head { padding:14px 16px; }
@@ -265,6 +265,7 @@
       backupText: "",
       importText: "",
       backupMessage: "",
+      legacyMessage: "",
       shareMessage: "",
       timeZone: safeLoadPrefs().timeZone || SOURCE_TIME_ZONE,
       timeZonePickerOpen: false,
@@ -604,17 +605,15 @@
     }
 
     function renderSharePanel() {
-      const shareUrl = "https://tonigrapci.github.io/fifa2026/";
-      return `<div class="share-panel">
-        <img src="assets/fifa2026-invite.png" alt="World Cup Schedule QR invite">
-        <div class="share-copy">
-          <strong>Share with friends</strong>
-          <span>${shareUrl}</span>
-          <div class="share-actions">
-            <button class="btn green" onclick="shareInvite()">Share</button>
-            <a class="btn" href="assets/fifa2026-invite.png" target="_blank" rel="noopener">Open invite</a>
-          </div>
+      return `<div class="detail-actions">
+        <div class="simple-share-card">
+          <button class="btn green" onclick="shareInvite()">Share</button>
           ${state.shareMessage ? `<div class="share-status">${escapeHtml(state.shareMessage)}</div>` : ""}
+        </div>
+        <div class="legacy-import-card">
+          <input id="legacyPrefsFile" class="hidden" type="file" accept=".txt,.json,application/json,text/plain" onchange="importLegacyPrefsFile(this.files[0]); this.value='';">
+          <label class="file-label" for="legacyPrefsFile">Input old preferences</label>
+          ${state.legacyMessage ? `<div class="share-status">${escapeHtml(state.legacyMessage)}</div>` : ""}
         </div>
       </div>`;
     }
@@ -935,7 +934,7 @@
 
     function importBackupText() {
       try {
-        const parsed = JSON.parse(state.importText || "{}");
+        const parsed = parseBackupPayload(state.importText || "{}");
         const importedEdits = parsed.edits && typeof parsed.edits === "object" ? parsed.edits : parsed;
         state.edits = importedEdits || {};
         persist();
@@ -952,7 +951,7 @@
       reader.onload = () => {
         state.importText = String(reader.result || "");
         try {
-          const parsed = JSON.parse(state.importText || "{}");
+          const parsed = parseBackupPayload(state.importText || "{}");
           const importedEdits = parsed.edits && typeof parsed.edits === "object" ? parsed.edits : parsed;
           state.edits = importedEdits || {};
           persist();
@@ -961,6 +960,65 @@
           state.backupMessage = "Could not import backup. Please choose a valid JSON backup file.";
         }
         render();
+      };
+      reader.readAsText(file);
+    }
+
+    function parseBackupPayload(text) {
+      const raw = String(text || "").trim();
+      try { return JSON.parse(raw || "{}"); } catch {}
+      const start = raw.indexOf("{");
+      const end = raw.lastIndexOf("}");
+      if (start === -1 || end <= start) throw new Error("No JSON object found");
+      return JSON.parse(raw.slice(start, end + 1));
+    }
+
+    function normalizeLegacyWatchStatus(value) {
+      const status = String(value || "").trim().toLowerCase();
+      if (status === "watch live" || status === "live") return "live";
+      if (status === "watch replay" || status === "replay") return "replay";
+      if (status === "skip") return "skip";
+      return "";
+    }
+
+    function importLegacyPrefsPayload(payload) {
+      const importedEdits = payload.edits && typeof payload.edits === "object" ? payload.edits : payload;
+      const validIds = new Set(BASE_MATCHES.map(match => String(match.id)));
+      const next = Object.assign({}, state.edits);
+      const counts = { matches: 0, notes: 0, mustWatch: 0, live: 0, replay: 0, skip: 0 };
+      for (const [id, edit] of Object.entries(importedEdits || {})) {
+        if (!validIds.has(String(id)) || !edit || typeof edit !== "object") continue;
+        const notes = String(edit.notes || "");
+        const watchStatus = normalizeLegacyWatchStatus(edit.watchStatus || (edit.watched ? "replay" : ""));
+        const normalized = {
+          notes,
+          mustWatch: Boolean(edit.mustWatch),
+          watchStatus: watchStatus || "skip"
+        };
+        next[id] = normalized;
+        counts.matches += 1;
+        if (notes.trim()) counts.notes += 1;
+        if (normalized.mustWatch) counts.mustWatch += 1;
+        counts[normalized.watchStatus] += 1;
+      }
+      if (!counts.matches) throw new Error("No matching preferences found");
+      state.edits = next;
+      persist();
+      state.legacyMessage = `Imported ${counts.matches} matches: ${counts.notes} notes, ${counts.mustWatch} must-watch, ${counts.live} live, ${counts.replay} replay.`;
+      state.backupMessage = "";
+      render();
+    }
+
+    function importLegacyPrefsFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          importLegacyPrefsPayload(parseBackupPayload(reader.result || ""));
+        } catch {
+          state.legacyMessage = "Could not import that file.";
+          render();
+        }
       };
       reader.readAsText(file);
     }
