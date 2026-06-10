@@ -458,7 +458,7 @@
       const q = state.query.trim().toLowerCase();
       return events()
         .filter(e => {
-          const text = `${e.id} ${e.stage} ${e.home} ${e.away} ${e.venue} ${e.notes || ""}`.toLowerCase();
+          const text = `${e.id} ${e.stage} ${e.home} ${e.away} ${e.venue} ${e.notes || ""} ${searchStatusText(e)}`.toLowerCase();
           if (q && !text.includes(q)) return false;
           return true;
         })
@@ -480,6 +480,12 @@
 
     function watchStatus(e) {
       return e.watchStatus || (e.watched ? "replay" : "skip");
+    }
+
+    function searchStatusText(e) {
+      const status = watchStatus(e);
+      const labels = { live:"watch live live", replay:"watch replay replay", skip:"skip" };
+      return `${e.mustWatch ? "must watch mustwatch" : ""} ${labels[status] || ""}`;
     }
 
     function statusDot(status) {
@@ -578,7 +584,7 @@
         </header>
         <section class="toolbar ${state.view === "agenda" ? "sticky" : ""}">
           <div class="toolbar-row">
-            <label class="searchbox"><span>⌕</span><input type="search" id="search" placeholder="Search team, venue, stage, notes..." value="${escapeHtml(state.query)}"></label>
+            <label class="searchbox"><span>⌕</span><input type="search" id="search" placeholder="Search team, venue, stage, notes, status..." value="${escapeHtml(state.query)}"></label>
             <div class="controls view-toggle" aria-label="View mode">
               ${[
                 ["agenda", "☰", "List View"],
