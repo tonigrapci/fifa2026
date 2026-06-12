@@ -35,9 +35,12 @@
     h1 { margin:0; font-size: clamp(1.45rem, 4vw, 2.2rem); line-height:1; }
     .toolbar { background:white; border:1px solid var(--slate-200); border-radius:28px; padding:16px; box-shadow:0 1px 6px rgba(15,23,42,.05); transition:border-radius .2s ease, box-shadow .2s ease, padding .2s ease; }
     .toolbar.sticky { position:sticky; top:12px; z-index:30; }
+    .toolbar .hero { margin-bottom:12px; }
     .toolbar-summary { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; margin-top:12px; padding-top:12px; border-top:1px solid var(--slate-200); }
     .toolbar-summary-main { min-width:0; display:flex; align-items:center; gap:8px; }
     .toolbar-row { display:flex; flex-direction:column; gap:12px; }
+    .mobile-controls-toggle { display:none; }
+    .controls-tray { display:flex; flex-direction:column; gap:0; }
     .searchbox { position:relative; width:100%; }
     .searchbox span { position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--blue-600); font-size:25px; }
     input[type="search"], input[type="text"], input[type="date"], input[type="time"], textarea, select {
@@ -194,15 +197,15 @@
       .wrap { gap:14px; }
       .hero { border-radius:18px; padding:14px 16px; }
       .toolbar { border-radius:0 0 20px 20px; padding:10px; margin-left:-12px; margin-right:-12px; border-left:0; border-right:0; }
-      .toolbar.sticky { top:0; }
-      .toolbar.sticky .view-toggle,
-      .toolbar.sticky .toolbar-summary,
-      .toolbar.sticky .detail-panel { overflow:hidden; max-height:420px; opacity:1; transform:translateY(0); transition:max-height .22s ease, opacity .18s ease, transform .2s ease, margin .2s ease, padding .2s ease, border-width .2s ease; }
-      .toolbar.sticky .detail-panel { max-height:none; }
+      .toolbar .hero { margin-bottom:10px; }
+      body.mobile-sticky-view .toolbar.sticky { position:fixed; top:0; left:0; right:0; margin:0; border-radius:0 0 20px 20px; border-left:0; border-right:0; }
+      body.mobile-sticky-view .toolbar.sticky + #results { padding-top:168px; }
+      .mobile-controls-toggle { display:flex; align-self:center; align-items:center; justify-content:center; width:42px; height:22px; border:0; border-radius:999px; background:var(--slate-100); color:var(--slate-600); font-size:17px; font-weight:900; line-height:1; margin:-4px 0 0; transition:transform .18s ease, background .18s ease, color .18s ease; }
+      .mobile-controls-toggle.open { transform:rotate(180deg); background:var(--slate-950); color:white; }
+      .controls-tray { display:none; overflow:hidden; }
+      body.mobile-controls-open .controls-tray { display:flex; opacity:1; transform:translateY(0); pointer-events:auto; }
+      .toolbar.sticky { box-shadow:0 8px 22px rgba(15,23,42,.08); }
       body.list-scrolled .toolbar.sticky { padding-top:8px; padding-bottom:8px; box-shadow:0 8px 22px rgba(15,23,42,.1); }
-      body.list-scrolled .toolbar.sticky .view-toggle,
-      body.list-scrolled .toolbar.sticky .toolbar-summary,
-      body.list-scrolled .toolbar.sticky .detail-panel { max-height:0; opacity:0; transform:translateY(-6px); margin-top:0; padding-top:0; padding-bottom:0; border-width:0; pointer-events:none; }
       body.list-scrolled input[type="search"] { padding-top:12px; padding-bottom:12px; border-radius:16px; box-shadow:0 4px 14px rgba(15,23,42,.08); }
       .toolbar-summary { gap:10px; margin-top:10px; padding-top:10px; }
       .toolbar-summary-text { min-width:0; color:var(--slate-600); font-size:13px; font-weight:800; line-height:1.25; }
@@ -770,14 +773,17 @@
 
     function renderToolbar(list) {
       return `
-        <header class="hero">
-          <div class="hero-inner">
-            <h1>World Cup Schedule</h1>
-          </div>
-        </header>
         <section class="toolbar ${["agenda", "days"].includes(state.view) ? "sticky" : ""}">
+          <header class="hero">
+            <div class="hero-inner">
+              <h1>World Cup Schedule</h1>
+            </div>
+          </header>
           <div class="toolbar-row">
             <label class="searchbox"><span>⌕</span><input type="search" id="search" placeholder="Search team, venue, stage, notes, status..." value="${escapeHtml(state.query)}"></label>
+            <button class="mobile-controls-toggle ${state.mobileAgendaOpen ? "open" : ""}" onclick="toggleMobileAgenda()" aria-label="${state.mobileAgendaOpen ? "Hide controls" : "Show controls"}" aria-expanded="${state.mobileAgendaOpen ? "true" : "false"}">⌄</button>
+          </div>
+          <div class="controls-tray">
             <div class="controls view-toggle" aria-label="View mode">
               ${[
                 ["agenda", "☰", "List View"],
@@ -786,18 +792,18 @@
                 ["month", "□", "Month"]
               ].map(([v, icon, label]) => `<button class="btn ${state.view===v?'active':''}" onclick="setView('${v}')">${icon} ${label}</button>`).join("")}
             </div>
-          </div>
-          <div class="toolbar-summary">
-            <div class="toolbar-summary-main">
-              <div class="toolbar-summary-text"><strong>${escapeHtml(timeZoneDisplayName())} time</strong><br>${state.view === "agenda" ? "List View" : state.view[0].toUpperCase() + state.view.slice(1)}</div>
-              <button class="btn icon-btn" onclick="resetAll()" title="Reset all edits" aria-label="Reset all edits">↺</button>
+            <div class="toolbar-summary">
+              <div class="toolbar-summary-main">
+                <div class="toolbar-summary-text"><strong>${escapeHtml(timeZoneDisplayName())} time</strong><br>${state.view === "agenda" ? "List View" : state.view[0].toUpperCase() + state.view.slice(1)}</div>
+                <button class="btn icon-btn" onclick="resetAll()" title="Reset all edits" aria-label="Reset all edits">↺</button>
+              </div>
+              <button class="btn" onclick="toggleMobileAgenda()">${state.mobileAgendaOpen ? "Less details" : "More details"}</button>
             </div>
-            <button class="btn" onclick="toggleMobileAgenda()">${state.mobileAgendaOpen ? "Less details" : "More details"}</button>
-          </div>
-          <div class="detail-panel">
-            <div class="settings-grid">
-              ${renderTimeZonePicker()}
-              ${renderSharePanel()}
+            <div class="detail-panel">
+              <div class="settings-grid">
+                ${renderTimeZonePicker()}
+                ${renderSharePanel()}
+              </div>
             </div>
           </div>
         </section>`;
@@ -966,11 +972,15 @@
       if (state.view !== "days" || state.query || state.selectedId || state.autoScrolledDays) return;
       state.autoScrolledDays = true;
       requestAnimationFrame(() => {
-        const target = document.querySelector('[data-scroll-target="true"]');
-        if (!target) return;
-        const offset = window.matchMedia("(max-width: 700px)").matches ? 88 : 16;
-        const top = target.getBoundingClientRect().top + window.scrollY - offset;
-        window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+        requestAnimationFrame(() => {
+          updateScrollState();
+          const target = document.querySelector('[data-scroll-target="true"]');
+          if (!target) return;
+          const stickyToolbar = document.querySelector(".toolbar.sticky");
+          const offset = window.matchMedia("(max-width: 700px)").matches && stickyToolbar ? stickyToolbar.getBoundingClientRect().height + 12 : 16;
+          const top = target.getBoundingClientRect().top + window.scrollY - offset;
+          window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
+        });
       });
     }
 
@@ -981,6 +991,7 @@
       const isMobileAgenda = isAgenda && window.matchMedia("(max-width: 700px)").matches;
       document.body.classList.toggle("details-closed", !state.mobileAgendaOpen);
       document.body.classList.toggle("details-open", state.mobileAgendaOpen);
+      document.body.classList.toggle("mobile-controls-open", state.mobileAgendaOpen);
       document.body.classList.toggle("agenda-filters-closed", isAgenda && !state.mobileAgendaOpen);
       document.body.classList.toggle("agenda-filters-open", isAgenda && state.mobileAgendaOpen);
       document.body.classList.toggle("mobile-agenda-closed", isMobileAgenda && !state.mobileAgendaOpen);
