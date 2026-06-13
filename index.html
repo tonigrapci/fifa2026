@@ -40,6 +40,8 @@
     .toolbar-summary-main { min-width:0; display:flex; align-items:center; gap:8px; }
     .toolbar-row { display:flex; flex-direction:column; gap:12px; }
     .mobile-controls-toggle { display:none; }
+    .chevron-icon { width:10px; height:10px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:translateY(-2px) rotate(45deg); transition:transform .18s ease; }
+    .mobile-controls-toggle.open .chevron-icon { transform:translateY(2px) rotate(225deg); }
     .controls-tray { display:flex; flex-direction:column; gap:0; }
     .searchbox { position:relative; width:100%; }
     .searchbox span { position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--blue-600); font-size:25px; }
@@ -78,8 +80,8 @@
     .backup { margin-top:14px; background:var(--slate-50); border:1px solid var(--slate-200); border-radius:18px; padding:14px; font-size:14px; }
     .backup textarea { width:100%; min-height:140px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; }
     .detail-actions { display:grid; gap:10px; }
-    .simple-share-card, .legacy-import-card { background:white; border:1px solid var(--slate-200); border-radius:16px; padding:12px; }
-    .simple-share-card .btn, .legacy-import-card .btn, .legacy-import-card .file-label { width:100%; justify-content:center; }
+    .simple-share-card { background:white; border:1px solid var(--slate-200); border-radius:16px; padding:12px; }
+    .simple-share-card .btn { width:100%; justify-content:center; }
     .share-copy { min-width:0; }
     .share-copy strong { display:block; font-size:14px; }
     .share-copy span { display:block; color:var(--slate-600); font-size:12px; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -200,8 +202,8 @@
       .toolbar .hero { margin-bottom:10px; }
       body.mobile-sticky-view .toolbar.sticky { position:fixed; top:0; left:0; right:0; margin:0; border-radius:0 0 20px 20px; border-left:0; border-right:0; }
       body.mobile-sticky-view .toolbar.sticky + #results { padding-top:168px; }
-      .mobile-controls-toggle { display:flex; align-self:center; align-items:center; justify-content:center; width:42px; height:22px; border:0; border-radius:999px; background:var(--slate-100); color:var(--slate-600); font-size:17px; font-weight:900; line-height:1; margin:-4px 0 0; transition:transform .18s ease, background .18s ease, color .18s ease; }
-      .mobile-controls-toggle.open { transform:rotate(180deg); background:var(--slate-950); color:white; }
+      .mobile-controls-toggle { display:flex; align-items:center; justify-content:center; width:44px; height:24px; border:1px solid var(--slate-200); border-radius:999px; background:var(--slate-50); color:var(--slate-600); margin:8px auto 0; box-shadow:0 1px 4px rgba(15,23,42,.06); transition:background .18s ease, color .18s ease, border-color .18s ease, box-shadow .18s ease; }
+      .mobile-controls-toggle.open { background:var(--slate-950); border-color:var(--slate-950); color:white; box-shadow:0 4px 12px rgba(15,23,42,.18); }
       .controls-tray { display:none; overflow:hidden; }
       body.mobile-controls-open .controls-tray { display:flex; opacity:1; transform:translateY(0); pointer-events:auto; }
       .toolbar.sticky { box-shadow:0 8px 22px rgba(15,23,42,.08); }
@@ -214,7 +216,7 @@
       .controls .btn, .controls .file-label, .controls select { width:100%; min-width:0; justify-content:center; }
       .view-toggle { grid-template-columns:repeat(2,minmax(0,1fr)); }
       .legend { font-size:12px; gap:8px; }
-      .simple-share-card, .legacy-import-card { padding:10px; }
+      .simple-share-card { padding:10px; }
       .modal { align-items:flex-start; overflow:auto; padding:10px; }
       .modal-card { border-radius:20px; max-height:calc(100dvh - 20px); overflow:auto; }
       .modal-head { padding:14px 16px; }
@@ -281,7 +283,9 @@
     const RESULTS_REFRESH_KEY = "world-cup-calendar-results-refresh-date-v1";
     const SCORE_FALLBACKS = {
       1: { homeScore: 2, awayScore: 0, status: "FT", source: "Built-in" },
-      2: { homeScore: 2, awayScore: 1, status: "FT", source: "Built-in" }
+      2: { homeScore: 2, awayScore: 1, status: "FT", source: "Built-in" },
+      3: { homeScore: 1, awayScore: 1, status: "FT", source: "Built-in" },
+      4: { homeScore: 4, awayScore: 1, status: "FT", source: "Built-in" }
     };
 
     let state = {
@@ -295,11 +299,11 @@
       backupText: "",
       importText: "",
       backupMessage: "",
-      legacyMessage: "",
       shareMessage: "",
       timeZone: safeLoadPrefs().timeZone || SOURCE_TIME_ZONE,
       timeZonePickerOpen: false,
       mobileAgendaOpen: false,
+      mobileDetailsOpen: false,
       autoScrolledDays: false
     };
 
@@ -567,10 +571,14 @@
         .toLowerCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
+        .replace(/&/g, " and ")
+        .replace(/-/g, " ")
         .replace(/[’']/g, "")
+        .replace(/[^a-z0-9]+/g, " ")
         .replace(/^the /, "")
         .trim();
       const aliases = {
+        "bosnia herzegovina": "bosnia and herzegovina",
         "cote divoire": "ivory coast",
         "czechia": "czech republic",
         "korea republic": "south korea",
@@ -656,7 +664,7 @@
     }
 
     function watchStatus(e) {
-      return e.watchStatus || (e.watched ? "replay" : "skip");
+      return e.watchStatus || (e.watched ? "replay" : "");
     }
 
     function searchStatusText(e) {
@@ -781,7 +789,6 @@
           </header>
           <div class="toolbar-row">
             <label class="searchbox"><span>⌕</span><input type="search" id="search" placeholder="Search team, venue, stage, notes, status..." value="${escapeHtml(state.query)}"></label>
-            <button class="mobile-controls-toggle ${state.mobileAgendaOpen ? "open" : ""}" onclick="toggleMobileAgenda()" aria-label="${state.mobileAgendaOpen ? "Hide controls" : "Show controls"}" aria-expanded="${state.mobileAgendaOpen ? "true" : "false"}">⌄</button>
           </div>
           <div class="controls-tray">
             <div class="controls view-toggle" aria-label="View mode">
@@ -795,17 +802,18 @@
             <div class="toolbar-summary">
               <div class="toolbar-summary-main">
                 <div class="toolbar-summary-text"><strong>${escapeHtml(timeZoneDisplayName())} time</strong><br>${state.view === "agenda" ? "List View" : state.view[0].toUpperCase() + state.view.slice(1)}</div>
-                <button class="btn icon-btn" onclick="resetAll()" title="Reset all edits" aria-label="Reset all edits">↺</button>
               </div>
-              <button class="btn" onclick="toggleMobileAgenda()">${state.mobileAgendaOpen ? "Less details" : "More details"}</button>
+              <button class="btn" onclick="toggleMobileDetails()">${state.mobileDetailsOpen ? "Less details" : "More details"}</button>
             </div>
             <div class="detail-panel">
               <div class="settings-grid">
                 ${renderTimeZonePicker()}
                 ${renderSharePanel()}
+                <button class="btn" onclick="resetAll()">↺ Reset all edits</button>
               </div>
             </div>
           </div>
+          <button class="mobile-controls-toggle ${state.mobileAgendaOpen ? "open" : ""}" onclick="toggleMobileAgenda()" aria-label="${state.mobileAgendaOpen ? "Hide controls" : "Show controls"}" aria-expanded="${state.mobileAgendaOpen ? "true" : "false"}"><span class="chevron-icon" aria-hidden="true"></span></button>
         </section>`;
     }
 
@@ -814,11 +822,6 @@
         <div class="simple-share-card">
           <button class="btn green" onclick="shareInvite()">Share</button>
           ${state.shareMessage ? `<div class="share-status">${escapeHtml(state.shareMessage)}</div>` : ""}
-        </div>
-        <div class="legacy-import-card">
-          <input id="legacyPrefsFile" class="hidden" type="file" accept=".txt,.json,application/json,text/plain" onchange="importLegacyPrefsFile(this.files[0]); this.value='';">
-          <label class="file-label" for="legacyPrefsFile">Input old preferences</label>
-          ${state.legacyMessage ? `<div class="share-status">${escapeHtml(state.legacyMessage)}</div>` : ""}
         </div>
       </div>`;
     }
@@ -924,6 +927,7 @@
             <div class="span2 quick-toggles">
               <label class="checkrow toggle-card"><input id="editMustWatch" type="checkbox" ${e.mustWatch ? "checked" : ""}> Must watch</label>
               <label class="status-card"><span>Watch status</span><select id="editWatchStatus">
+                <option value="" ${!watchStatus(e) ? "selected" : ""}>No status</option>
                 <option value="live" ${watchStatus(e) === "live" ? "selected" : ""}>Watch live</option>
                 <option value="replay" ${watchStatus(e) === "replay" ? "selected" : ""}>Watch replay</option>
                 <option value="skip" ${watchStatus(e) === "skip" ? "selected" : ""}>Skip</option>
@@ -931,7 +935,6 @@
             </div>
           </div>
           <div class="modal-actions">
-            <button class="btn" onclick="resetEvent(${e.id})">↺ Reset</button>
             <div class="right-actions"><button class="btn" onclick="closeEditor()">Back</button><button class="btn green" onclick="saveEditor(${e.id})">✓ Save</button></div>
           </div>
         </div>
@@ -989,8 +992,8 @@
       const isAgenda = state.view === "agenda";
       const isMobileStickyView = ["agenda", "days"].includes(state.view) && window.matchMedia("(max-width: 700px)").matches;
       const isMobileAgenda = isAgenda && window.matchMedia("(max-width: 700px)").matches;
-      document.body.classList.toggle("details-closed", !state.mobileAgendaOpen);
-      document.body.classList.toggle("details-open", state.mobileAgendaOpen);
+      document.body.classList.toggle("details-closed", !state.mobileDetailsOpen);
+      document.body.classList.toggle("details-open", state.mobileDetailsOpen);
       document.body.classList.toggle("mobile-controls-open", state.mobileAgendaOpen);
       document.body.classList.toggle("agenda-filters-closed", isAgenda && !state.mobileAgendaOpen);
       document.body.classList.toggle("agenda-filters-open", isAgenda && state.mobileAgendaOpen);
@@ -1015,7 +1018,7 @@
     function updateScrollState() {
       const isMobileStickyView = ["agenda", "days"].includes(state.view) && window.matchMedia("(max-width: 700px)").matches;
       const focusedInDetails = document.activeElement && Boolean(document.activeElement.closest(".detail-panel"));
-      const keepDetailsOpen = state.mobileAgendaOpen || state.timeZonePickerOpen || focusedInDetails;
+      const keepDetailsOpen = state.mobileAgendaOpen || state.mobileDetailsOpen || state.timeZonePickerOpen || focusedInDetails;
       document.body.classList.toggle("list-scrolled", isMobileStickyView && !keepDetailsOpen && window.scrollY > 30);
     }
 
@@ -1033,6 +1036,8 @@
 
     function setView(v) {
       state.view = v;
+      state.mobileAgendaOpen = false;
+      state.mobileDetailsOpen = false;
       if (v === "days") state.autoScrolledDays = false;
       render();
     }
@@ -1066,6 +1071,12 @@
     }
     function toggleMobileAgenda() {
       state.mobileAgendaOpen = !state.mobileAgendaOpen;
+      if (!state.mobileAgendaOpen) state.mobileDetailsOpen = false;
+      render();
+    }
+    function toggleMobileDetails() {
+      state.mobileDetailsOpen = !state.mobileDetailsOpen;
+      if (state.mobileDetailsOpen) state.mobileAgendaOpen = true;
       render();
     }
     async function shareInvite() {
@@ -1211,56 +1222,6 @@
       const end = raw.lastIndexOf("}");
       if (start === -1 || end <= start) throw new Error("No JSON object found");
       return JSON.parse(raw.slice(start, end + 1));
-    }
-
-    function normalizeLegacyWatchStatus(value) {
-      const status = String(value || "").trim().toLowerCase();
-      if (status === "watch live" || status === "live") return "live";
-      if (status === "watch replay" || status === "replay") return "replay";
-      if (status === "skip") return "skip";
-      return "";
-    }
-
-    function importLegacyPrefsPayload(payload) {
-      const importedEdits = payload.edits && typeof payload.edits === "object" ? payload.edits : payload;
-      const validIds = new Set(BASE_MATCHES.map(match => String(match.id)));
-      const next = Object.assign({}, state.edits);
-      const counts = { matches: 0, notes: 0, mustWatch: 0, live: 0, replay: 0, skip: 0 };
-      for (const [id, edit] of Object.entries(importedEdits || {})) {
-        if (!validIds.has(String(id)) || !edit || typeof edit !== "object") continue;
-        const notes = String(edit.notes || "");
-        const watchStatus = normalizeLegacyWatchStatus(edit.watchStatus || (edit.watched ? "replay" : ""));
-        const normalized = {
-          notes,
-          mustWatch: Boolean(edit.mustWatch),
-          watchStatus: watchStatus || "skip"
-        };
-        next[id] = normalized;
-        counts.matches += 1;
-        if (notes.trim()) counts.notes += 1;
-        if (normalized.mustWatch) counts.mustWatch += 1;
-        counts[normalized.watchStatus] += 1;
-      }
-      if (!counts.matches) throw new Error("No matching preferences found");
-      state.edits = next;
-      persist();
-      state.legacyMessage = `Imported ${counts.matches} matches: ${counts.notes} notes, ${counts.mustWatch} must-watch, ${counts.live} live, ${counts.replay} replay.`;
-      state.backupMessage = "";
-      render();
-    }
-
-    function importLegacyPrefsFile(file) {
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          importLegacyPrefsPayload(parseBackupPayload(reader.result || ""));
-        } catch {
-          state.legacyMessage = "Could not import that file.";
-          render();
-        }
-      };
-      reader.readAsText(file);
     }
 
     render();
